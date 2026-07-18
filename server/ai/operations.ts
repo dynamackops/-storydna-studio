@@ -3,12 +3,15 @@ import { zodTextFormat } from "openai/helpers/zod";
 import {
   clarifyingQuestionsSchema,
   creativeBriefSchema,
+  imagePromptSchema,
+  imagePromptSetSchema,
   sceneOutlineSchema,
   sceneSchema,
   storyAnalysisSchema,
   type StoryAnalysisValues,
   type StoryInputValues,
   type CreativeBriefValues,
+  type ImagePromptValues,
   type SceneValues,
 } from "../../shared/schemas";
 
@@ -152,4 +155,59 @@ export async function regenerateScene(
   if (!response.output_parsed) throw new Error("The model returned no parsed scene.");
   const parsed = sceneSchema.parse(response.output_parsed);
   return { ...parsed, id: scene.id, position: scene.position };
+}
+
+export async function generateImagePrompts(
+  input: StoryInputValues,
+  analysis: StoryAnalysisValues,
+  brief: CreativeBriefValues,
+  scenes: SceneValues[],
+  apiKey: string,
+  model: string,
+) {
+  const response = await client(apiKey).responses.parse({
+    model,
+    input: [
+      {
+        role: "system",
+        content: `${CREATIVE_DIRECTOR}\n\nCreate one production-ready still-image prompt for every approved scene. Return prompts in scene order and preserve each sceneId exactly. Use ids prompt-{sceneId}. The detailed prompt must explicitly cover subject, environment, composition, camera framing, expression and body language, lighting, color and atmosphere, style, aspect ratio, and character continuity. Keep the short prompt usable, make alternate framing materially different, and make negative instructions practical. Carry approved consistency requirements into observable consistency anchors. Do not change the story, scenes, or approved brief.`,
+      },
+      {
+        role: "user",
+        content: `ORIGINAL SOURCE MATERIAL\n${JSON.stringify(input, null, 2)}\n\nSTORYDNA INTERPRETATION\n${JSON.stringify(analysis, null, 2)}\n\nAPPROVED CREATIVE BRIEF (authoritative)\n${JSON.stringify(brief, null, 2)}\n\nAPPROVED SCENES (preserve scene ids and order)\n${JSON.stringify(scenes, null, 2)}`,
+      },
+    ],
+    text: { format: zodTextFormat(imagePromptSetSchema, "image_prompt_set") },
+  });
+  if (!response.output_parsed) throw new Error("The model returned no parsed image prompts.");
+  return imagePromptSetSchema.parse(response.output_parsed);
+}
+
+export async function regenerateImagePrompt(
+  input: StoryInputValues,
+  analysis: StoryAnalysisValues,
+  brief: CreativeBriefValues,
+  scene: SceneValues,
+  prompt: ImagePromptValues,
+  creatorNote: string,
+  apiKey: string,
+  model: string,
+) {
+  const response = await client(apiKey).responses.parse({
+    model,
+    input: [
+      {
+        role: "system",
+        content: `${CREATIVE_DIRECTOR}\n\nRegenerate exactly one still-image prompt. Preserve its id, sceneId, and aspectRatio exactly. Do not return or modify any other prompt. Obey the approved brief and scene, incorporate the creator note, and produce a meaningfully different visual solution without changing the story beat.`,
+      },
+      {
+        role: "user",
+        content: `ORIGINAL SOURCE\n${JSON.stringify(input, null, 2)}\n\nSTORYDNA\n${JSON.stringify(analysis, null, 2)}\n\nAPPROVED BRIEF\n${JSON.stringify(brief, null, 2)}\n\nAPPROVED TARGET SCENE\n${JSON.stringify(scene, null, 2)}\n\nCURRENT PROMPT\n${JSON.stringify(prompt, null, 2)}\n\nCREATOR NOTE\n${creatorNote || "Find a stronger, more specific cinematic image."}`,
+      },
+    ],
+    text: { format: zodTextFormat(imagePromptSchema, "regenerated_image_prompt") },
+  });
+  if (!response.output_parsed) throw new Error("The model returned no parsed image prompt.");
+  const parsed = imagePromptSchema.parse(response.output_parsed);
+  return { ...parsed, id: prompt.id, sceneId: prompt.sceneId, aspectRatio: prompt.aspectRatio };
 }

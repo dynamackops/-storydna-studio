@@ -151,8 +151,50 @@ export const sceneResponseSchema = z.object({
   meta: operationMetaSchema,
 });
 
+export const imagePromptSchema = z.object({
+  id: z.string().min(1),
+  sceneId: z.string().min(1),
+  detailedPrompt: z.string().min(1),
+  shortPrompt: z.string().min(1),
+  alternateFraming: z.string().min(1),
+  negativeInstructions: z.string().min(1),
+  aspectRatio: z.enum(aspectRatios),
+  consistencyAnchors: z.array(z.string().min(1)).min(1).max(8),
+});
+
+export const imagePromptSetSchema = z.object({
+  prompts: z.array(imagePromptSchema).min(2).max(30),
+});
+
+export const imagePromptsRequestSchema = z.object({
+  input: storyInputSchema,
+  analysis: storyAnalysisSchema,
+  brief: creativeBriefSchema,
+  scenes: z.array(sceneSchema).min(2).max(30),
+});
+
+export const regenerateImagePromptRequestSchema = z.object({
+  input: storyInputSchema,
+  analysis: storyAnalysisSchema,
+  brief: creativeBriefSchema,
+  scene: sceneSchema,
+  prompt: imagePromptSchema,
+  creatorNote: z.string().trim().max(1_000).default(""),
+});
+
+export const imagePromptsResponseSchema = z.object({
+  data: imagePromptSetSchema,
+  meta: operationMetaSchema,
+});
+
+export const imagePromptResponseSchema = z.object({
+  data: imagePromptSchema,
+  meta: operationMetaSchema,
+});
+
 export type StoryInputValues = z.infer<typeof storyInputSchema>;
 export type StoryAnalysisValues = z.infer<typeof storyAnalysisSchema>;
 export type ClarifyingQuestionValues = z.infer<typeof clarifyingQuestionSchema>;
 export type CreativeBriefValues = z.infer<typeof creativeBriefSchema>;
 export type SceneValues = z.infer<typeof sceneSchema>;
+export type ImagePromptValues = z.infer<typeof imagePromptSchema>;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { storyInputSchema, type StoryInputValues } from "../shared/schemas";
-import { requestAnalysis, requestCreativeBrief, requestQuestions, requestRegeneratedScene, requestSceneOutline } from "./lib/api";
+import { requestAnalysis, requestCreativeBrief, requestImagePrompts, requestQuestions, requestRegeneratedImagePrompt, requestRegeneratedScene, requestSceneOutline } from "./lib/api";
 import { useProjectStore } from "./store/projectStore";
 
 const stages = ["Story", "DNA", "Scenes", "Images", "Motion", "Review"];
@@ -372,7 +372,7 @@ function SceneTextField({ label, value, onChange, locked, rows = 2 }: { label: s
   return <label className="scene-field"><span>{label}</span><textarea rows={rows} value={value} readOnly={locked} onChange={(event) => onChange(event.target.value)} /></label>;
 }
 
-function ScenesWorkspace({ onRegenerateScene }: { onRegenerateScene: (id: string) => Promise<void> }) {
+function ScenesWorkspace({ onRegenerateScene, onGeneratePrompts }: { onRegenerateScene: (id: string) => Promise<void>; onGeneratePrompts: () => Promise<void> }) {
   const store = useProjectStore();
   const locked = store.sceneApproval === "approved";
   const totalDuration = store.scenes.reduce((sum, scene) => sum + scene.durationSeconds, 0);
@@ -415,17 +415,73 @@ function ScenesWorkspace({ onRegenerateScene }: { onRegenerateScene: (id: string
         })}
       </div>
 
-      {!locked ? <div className="outline-approval"><div><span>Ready?</span><h3>Approve the scene outline</h3><p>Approval locks order and content before image prompts are generated.</p></div><button className="primary-button" onClick={store.approveScenes}>Approve outline <Arrow /></button></div> : <div className="approved-next"><div><span className="approved-check">✓</span><div><strong>Scene outline protected</strong><p>Unchanged scenes will keep their stable IDs through the next stage.</p></div></div><button className="primary-button" disabled title="Image prompts are the next milestone">Generate image prompts <Arrow /></button></div>}
+      {!locked ? <div className="outline-approval"><div><span>Ready?</span><h3>Approve the scene outline</h3><p>Approval locks order and content before image prompts are generated.</p></div><button className="primary-button" onClick={store.approveScenes}>Approve outline <Arrow /></button></div> : <div className="approved-next"><div><span className="approved-check">✓</span><div><strong>Scene outline protected</strong><p>Unchanged scenes will keep their stable IDs through the next stage.</p></div></div><button className="primary-button" onClick={onGeneratePrompts}>Generate image prompts <Arrow /></button></div>}
     </section>
   );
 }
 
-function DNAWorkspace({ onRegenerate, onBuildBrief, onBuildScenes, onRegenerateScene }: { onRegenerate: () => Promise<void>; onBuildBrief: () => Promise<void>; onBuildScenes: () => Promise<void>; onRegenerateScene: (id: string) => Promise<void> }) {
+function PromptField({ label, value, onChange, rows = 4 }: { label: string; value: string; onChange: (value: string) => void; rows?: number }) {
+  return <label className="prompt-field"><span>{label}</span><textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} /></label>;
+}
+
+function ImagesWorkspace({ onRegeneratePrompt }: { onRegeneratePrompt: (sceneId: string) => Promise<void> }) {
+  const store = useProjectStore();
+  const [copied, setCopied] = useState<string>();
+
+  const copyPrompt = async (sceneId: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(sceneId);
+      window.setTimeout(() => setCopied((current) => current === sceneId ? undefined : current), 1600);
+    } catch {
+      store.fail("The browser blocked clipboard access. Select the prompt text and copy it manually.");
+    }
+  };
+
+  return (
+    <section className="images-workspace">
+      <div className="images-hero">
+        <div><p className="eyebrow"><span>06</span> Image direction</p><h1>Every frame speaks the same language.</h1><p>Detailed prompts inherit your approved brief, scene intention, aspect ratio, and character anchors. Edit freely or regenerate one frame without touching the rest.</p></div>
+        <div className="prompt-count"><strong>{String(store.imagePrompts.length).padStart(2, "0")}</strong><span>Production-ready<br />image prompts</span></div>
+      </div>
+      <div className="prompt-provenance"><span>✓ Approved brief</span><i /> <span>✓ Approved scenes</span><i /> <strong>{store.draft.aspectRatio} consistency applied</strong></div>
+      <div className="prompt-list">
+        {store.imagePrompts.map((prompt) => {
+          const scene = store.scenes.find((item) => item.id === prompt.sceneId);
+          if (!scene) return null;
+          const regenerating = store.regeneratingPromptSceneId === scene.id;
+          return (
+            <article className="prompt-card" data-scene-id={scene.id} key={prompt.id}>
+              <header className="prompt-card-header">
+                <div className="prompt-scene-number">{String(scene.position).padStart(2, "0")}</div>
+                <div><span>{scene.id} · {prompt.aspectRatio}</span><h2>{scene.storyBeat}</h2><p>{scene.emotionalIntention}</p></div>
+                <button className={`copy-button ${copied === scene.id ? "copied" : ""}`} onClick={() => copyPrompt(scene.id, prompt.detailedPrompt)}>{copied === scene.id ? "✓ Copied" : "Copy prompt"}</button>
+              </header>
+              <div className="prompt-grid">
+                <div className="prompt-wide"><PromptField label="Detailed generation prompt" rows={9} value={prompt.detailedPrompt} onChange={(value) => store.updateImagePrompt(scene.id, "detailedPrompt", value)} /></div>
+                <PromptField label="Short prompt" rows={5} value={prompt.shortPrompt} onChange={(value) => store.updateImagePrompt(scene.id, "shortPrompt", value)} />
+                <PromptField label="Alternate framing" rows={5} value={prompt.alternateFraming} onChange={(value) => store.updateImagePrompt(scene.id, "alternateFraming", value)} />
+                <div className="prompt-wide"><PromptField label="Negative instructions" rows={3} value={prompt.negativeInstructions} onChange={(value) => store.updateImagePrompt(scene.id, "negativeInstructions", value)} /></div>
+              </div>
+              <div className="consistency-panel"><span>Consistency anchors</span><div>{prompt.consistencyAnchors.map((anchor) => <em key={anchor}>{anchor}</em>)}</div></div>
+              <div className="prompt-actions"><input aria-label={`Regeneration note for image prompt ${scene.position}`} value={store.imagePromptNotes[scene.id] || ""} onChange={(event) => store.setImagePromptNote(scene.id, event.target.value)} placeholder="Optional direction: wider, more intimate, less literal…" /><button className="secondary-button" disabled={regenerating} onClick={() => onRegeneratePrompt(scene.id)}>{regenerating ? "Regenerating…" : "↻ Regenerate this prompt"}</button></div>
+            </article>
+          );
+        })}
+      </div>
+      {store.error && <div className="error-banner" role="alert"><strong>The image director paused.</strong> {store.error}</div>}
+      <div className="outline-approval images-next"><div><span>Images ready</span><h3>Next: bring each frame to life</h3><p>Motion planning and image uploads remain the next milestone.</p></div><button className="primary-button" disabled>Open motion workspace <Arrow /></button></div>
+    </section>
+  );
+}
+
+function DNAWorkspace({ onRegenerate, onBuildBrief, onBuildScenes, onRegenerateScene, onGeneratePrompts, onRegeneratePrompt }: { onRegenerate: () => Promise<void>; onBuildBrief: () => Promise<void>; onBuildScenes: () => Promise<void>; onRegenerateScene: (id: string) => Promise<void>; onGeneratePrompts: () => Promise<void>; onRegeneratePrompt: (sceneId: string) => Promise<void> }) {
   const brief = useProjectStore((state) => state.brief);
   const scenes = useProjectStore((state) => state.scenes);
+  const imagePrompts = useProjectStore((state) => state.imagePrompts);
   return (
     <main className="dna-shell">
-      {scenes.length ? <ScenesWorkspace onRegenerateScene={onRegenerateScene} /> : brief ? <CreativeBriefView onBuildScenes={onBuildScenes} /> : <><AnalysisHeader /><AnalysisView /><QuestionsView onRegenerate={onRegenerate} onBuildBrief={onBuildBrief} /></>}
+      {imagePrompts.length ? <ImagesWorkspace onRegeneratePrompt={onRegeneratePrompt} /> : scenes.length ? <ScenesWorkspace onRegenerateScene={onRegenerateScene} onGeneratePrompts={onGeneratePrompts} /> : brief ? <CreativeBriefView onBuildScenes={onBuildScenes} /> : <><AnalysisHeader /><AnalysisView /><QuestionsView onRegenerate={onRegenerate} onBuildBrief={onBuildBrief} /></>}
     </main>
   );
 }
@@ -433,9 +489,9 @@ function DNAWorkspace({ onRegenerate, onBuildBrief, onBuildScenes, onRegenerateS
 export default function App() {
   const store = useProjectStore();
   const hasAnalysis = Boolean(store.analysis);
-  const activeStage = store.scenes.length ? 2 : hasAnalysis ? 1 : 0;
-  const loading = store.status === "analyzing" || store.status === "questioning" || store.status === "briefing" || store.status === "scenes";
-  const loadingPhase = useMemo(() => store.status === "scenes" ? "Finding the visual rhythm." : store.status === "briefing" ? "Distilling the north star." : store.status === "questioning" ? "Finding the creative forks." : "Reading beneath the words.", [store.status]);
+  const activeStage = store.imagePrompts.length ? 3 : store.scenes.length ? 2 : hasAnalysis ? 1 : 0;
+  const loading = store.status === "analyzing" || store.status === "questioning" || store.status === "briefing" || store.status === "scenes" || store.status === "images";
+  const loadingPhase = useMemo(() => store.status === "images" ? "Composing the frame language." : store.status === "scenes" ? "Finding the visual rhythm." : store.status === "briefing" ? "Distilling the north star." : store.status === "questioning" ? "Finding the creative forks." : "Reading beneath the words.", [store.status]);
 
   const runQuestions = async (input: StoryInputValues, analysis = store.analysis, seed = store.variationSeed) => {
     if (!analysis) return;
@@ -513,11 +569,41 @@ export default function App() {
     }
   };
 
+  const buildImagePrompts = async () => {
+    if (!store.analysis || !store.brief || store.sceneApproval !== "approved") return;
+    store.beginImagePrompts();
+    try {
+      const result = await requestImagePrompts(store.draft, store.analysis, store.brief, store.scenes);
+      const sceneIds = store.scenes.map((scene) => scene.id);
+      const promptSceneIds = result.data.prompts.map((prompt) => prompt.sceneId);
+      if (sceneIds.join("|") !== promptSceneIds.join("|")) throw new Error("Image prompts did not preserve the approved scene order.");
+      store.setImagePrompts(result.data.prompts, result.meta);
+    } catch (error) {
+      store.fail(error instanceof Error ? error.message : "Image prompt generation failed.");
+    }
+  };
+
+  const regeneratePromptBySceneId = async (sceneId: string) => {
+    if (!store.analysis || !store.brief) return;
+    const scene = store.scenes.find((item) => item.id === sceneId);
+    const prompt = store.imagePrompts.find((item) => item.sceneId === sceneId);
+    if (!scene || !prompt) return;
+    const before = store.imagePrompts.map((item) => `${item.id}:${item.sceneId}`).join("|");
+    store.beginImagePromptRegeneration(sceneId);
+    try {
+      const result = await requestRegeneratedImagePrompt(store.draft, store.analysis, store.brief, scene, prompt, store.imagePromptNotes[sceneId] || "");
+      store.replaceImagePrompt(result.data, result.meta);
+      if (useProjectStore.getState().imagePrompts.map((item) => `${item.id}:${item.sceneId}`).join("|") !== before) throw new Error("Stable prompt identities changed unexpectedly.");
+    } catch (error) {
+      store.fail(error instanceof Error ? error.message : "Image prompt regeneration failed.");
+    }
+  };
+
   return (
     <div className="app-frame">
       <div className="ambient ambient-one" /><div className="ambient ambient-two" />
       <Header activeStage={activeStage} onStartOver={store.startOver} />
-      {loading ? <LoadingDirector message={store.statusMessage} phase={loadingPhase} /> : hasAnalysis ? <DNAWorkspace onRegenerate={regenerate} onBuildBrief={buildBrief} onBuildScenes={buildScenes} onRegenerateScene={regenerateSceneById} /> : <StoryIntake onAnalyze={analyze} />}
+      {loading ? <LoadingDirector message={store.statusMessage} phase={loadingPhase} /> : hasAnalysis ? <DNAWorkspace onRegenerate={regenerate} onBuildBrief={buildBrief} onBuildScenes={buildScenes} onRegenerateScene={regenerateSceneById} onGeneratePrompts={buildImagePrompts} onRegeneratePrompt={regeneratePromptBySceneId} /> : <StoryIntake onAnalyze={analyze} />}
       <footer><Mark /><p>StoryDNA Studio <span>·</span> An attentive creative director for AI filmmakers.</p><small>Built for OpenAI Build Week</small></footer>
     </div>
   );

@@ -74,6 +74,28 @@ if (regenerated.data.id !== targetScene.id || regenerated.data.position !== targ
   throw new Error("Isolated regeneration changed the stable scene identity.");
 }
 
+const prompts = await post("/api/story/image-prompts", {
+  input,
+  analysis: analysis.data,
+  brief: brief.data,
+  scenes: outline.data.scenes,
+});
+if (prompts.data.prompts.length !== outline.data.scenes.length || prompts.data.prompts.some((prompt, index) => prompt.sceneId !== outline.data.scenes[index].id)) {
+  throw new Error("Image prompts did not preserve the approved scene mapping.");
+}
+const targetPrompt = prompts.data.prompts[0];
+const regeneratedPrompt = await post("/api/story/image-prompt/regenerate", {
+  input,
+  analysis: analysis.data,
+  brief: brief.data,
+  scene: targetScene,
+  prompt: targetPrompt,
+  creatorNote: "Use a wider, less literal frame.",
+});
+if (regeneratedPrompt.data.id !== targetPrompt.id || regeneratedPrompt.data.sceneId !== targetPrompt.sceneId) {
+  throw new Error("Isolated image prompt regeneration changed stable identity.");
+}
+
 const invalid = await fetch(`${base}/api/story/analyze`, {
   method: "POST",
   headers: { "content-type": "application/json" },
@@ -87,6 +109,8 @@ console.log(JSON.stringify({
   creativeBrief: "valid",
   scenes: outline.data.scenes.length,
   stableRegeneration: regenerated.data.id,
+  imagePrompts: prompts.data.prompts.length,
+  stablePromptRegeneration: regeneratedPrompt.data.id,
   invalidInputStatus: invalid.status,
   mode: analysis.meta.demoMode ? "guided-demo" : "openai",
 }, null, 2));

@@ -134,3 +134,43 @@ Running log for product decisions, scope cuts, bugs, verification, and submissio
 - TypeScript typecheck and production build: passed.
 - Desktop check: no horizontal overflow; navigation 12px, status 11px, primary actions 12px, scene labels 11px.
 - Mobile 390×844 check: no horizontal overflow or clipped buttons; navigation and API status remain 11px.
+
+## 2026-07-18 — Image prompt workspace milestone
+
+### Decisions made
+
+- Kept GPT-5.6 as the core runtime provider because the OpenAI Build Week rules require entrants to build with Codex and GPT-5.6. Groq or Anthropic may supplement the product later, but will not replace the judged GPT-5.6 path.
+- Preserved guided demo mode as the no-cost and quota-safe walkthrough fallback; the real OpenAI path remains server-only and uses the configured model environment variable.
+- Added `generateImagePrompts` as a separate structured operation that accepts the approved brief and approved ordered scenes.
+- Linked every image prompt to a stable `sceneId` and added an independent prompt ID so downstream motion work can attach without positional coupling.
+- Included detailed prompt, short prompt, alternate framing, negative instructions, aspect ratio, and observable consistency anchors in the validated schema.
+- Added isolated `regenerateImagePrompt`; both the server and store forcibly preserve prompt ID, scene ID, and aspect ratio.
+- Kept every prompt editable after generation and added one-click copy feedback without adding provider-specific image generation yet.
+
+### Features cut
+
+- No direct image-provider API integration in this milestone; creators copy prompts into their preferred image tool.
+- No provider selector or Groq/Anthropic fallback yet. Provider abstraction is deferred until after the required end-to-end OpenAI demo is submission-ready.
+- No image uploads or motion plans; those remain the next milestone.
+
+### Bugs encountered
+
+- Live OpenAI generation remains blocked by HTTP 429 account quota, so the judged path requires API billing/quota before demo recording.
+- The managed Codex shell cannot bind a new localhost port (`EPERM`). Moving the environment file triggered the user-started Vite process to stop; the file was immediately restored, but the user must restart `npm run dev` in Terminal.
+- Local Terminal control is blocked by the desktop safety boundary, so Codex could not restart the user-owned process through the GUI.
+
+### Verification results
+
+- TypeScript typecheck: passed.
+- Focused schema/demo tests: 10 passed across 2 files.
+- Production build: passed.
+- Structured demo generation produced one prompt per approved scene in identical scene order.
+- Every demo prompt inherited the requested aspect ratio and approved consistency requirements.
+- Isolated prompt regeneration preserved prompt ID and scene ID while changing only the target prompt.
+- Browser could inspect the existing approved-scene state and confirmed the Images action is now enabled. Final live Images visual verification is pending a user restart of the local Vite process.
+
+### Codex contributions useful for Devpost
+
+- Extended the product's surgical-regeneration promise from scenes into production prompts, protecting unaffected creative work and stable downstream references.
+- Turned approved direction into visibly traceable prompt ingredients—emotion, framing, atmosphere, aspect ratio, and character continuity—rather than relying on a generic one-line generator prompt.
+- Verified the official competition requirement before making a provider decision, retaining GPT-5.6 as the eligible core while preserving a reliable guided demo fallback.

@@ -58,9 +58,9 @@
 
 ## Milestone 7 — Image prompts
 
-- [ ] Generate detailed and short prompt per approved scene.
-- [ ] Add alternate framing, negative instructions, copy, and isolated regenerate.
-- [ ] Verify aspect ratio and consistency details propagate.
+- [x] Generate detailed and short prompt per approved scene.
+- [x] Add alternate framing, negative instructions, copy, and isolated regenerate.
+- [x] Verify aspect ratio and consistency details propagate.
 
 ## Later milestones
 

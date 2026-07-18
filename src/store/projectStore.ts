@@ -3,12 +3,13 @@ import { persist } from "zustand/middleware";
 import type {
   ClarifyingQuestionValues,
   CreativeBriefValues,
+  ImagePromptValues,
   StoryAnalysisValues,
   StoryInputValues,
   SceneValues,
 } from "../../shared/schemas";
 
-export type WorkflowStatus = "idle" | "analyzing" | "questioning" | "briefing" | "scenes" | "ready" | "error";
+export type WorkflowStatus = "idle" | "analyzing" | "questioning" | "briefing" | "scenes" | "images" | "ready" | "error";
 
 export interface PersistedCreativeBrief extends CreativeBriefValues {
   approval: "ready" | "approved";
@@ -59,6 +60,9 @@ interface ProjectState {
   scenesApprovedAt?: string;
   sceneNotes: Record<string, string>;
   regeneratingSceneId?: string;
+  imagePrompts: ImagePromptValues[];
+  imagePromptNotes: Record<string, string>;
+  regeneratingPromptSceneId?: string;
   status: WorkflowStatus;
   statusMessage: string;
   error?: string;
@@ -88,6 +92,12 @@ interface ProjectState {
   beginSceneRegeneration: (id: string) => void;
   replaceScene: (scene: SceneValues, meta: OperationMeta) => void;
   approveScenes: () => void;
+  beginImagePrompts: () => void;
+  setImagePrompts: (prompts: ImagePromptValues[], meta: OperationMeta) => void;
+  updateImagePrompt: <K extends keyof ImagePromptValues>(sceneId: string, key: K, value: ImagePromptValues[K]) => void;
+  setImagePromptNote: (sceneId: string, note: string) => void;
+  beginImagePromptRegeneration: (sceneId: string) => void;
+  replaceImagePrompt: (prompt: ImagePromptValues, meta: OperationMeta) => void;
   fail: (message: string) => void;
   startOver: () => void;
 }
@@ -105,6 +115,8 @@ export const useProjectStore = create<ProjectState>()(
       scenes: [],
       sceneApproval: "draft",
       sceneNotes: {},
+      imagePrompts: [],
+      imagePromptNotes: {},
       status: "idle",
       statusMessage: "",
       updateDraft: (key, value) =>
@@ -120,6 +132,8 @@ export const useProjectStore = create<ProjectState>()(
           scenes: [],
           sceneApproval: "draft",
           sceneNotes: {},
+          imagePrompts: [],
+          imagePromptNotes: {},
         })),
       loadDemoStory: () =>
         set({
@@ -134,6 +148,8 @@ export const useProjectStore = create<ProjectState>()(
           scenes: [],
           sceneApproval: "draft",
           sceneNotes: {},
+          imagePrompts: [],
+          imagePromptNotes: {},
         }),
       beginAnalysis: () =>
         set({
@@ -199,6 +215,8 @@ export const useProjectStore = create<ProjectState>()(
           scenes: scenes.map((scene, index) => ({ ...scene, position: index + 1 })),
           sceneApproval: "ready",
           sceneNotes: {},
+          imagePrompts: [],
+          imagePromptNotes: {},
           meta,
           status: "ready",
           statusMessage: "",
@@ -258,7 +276,39 @@ export const useProjectStore = create<ProjectState>()(
           sceneApproval: state.scenes.length >= 2 ? "approved" : state.sceneApproval,
           scenesApprovedAt: state.scenes.length >= 2 ? new Date().toISOString() : state.scenesApprovedAt,
         })),
-      fail: (error) => set({ status: "error", statusMessage: "", error, regeneratingSceneId: undefined }),
+      beginImagePrompts: () =>
+        set({
+          status: "images",
+          statusMessage: "Translating each approved beat into a consistent cinematic frame…",
+          error: undefined,
+        }),
+      setImagePrompts: (imagePrompts, meta) =>
+        set({
+          imagePrompts,
+          imagePromptNotes: {},
+          meta,
+          status: "ready",
+          statusMessage: "",
+          error: undefined,
+        }),
+      updateImagePrompt: (sceneId, key, value) =>
+        set((state) => ({
+          imagePrompts: state.imagePrompts.map((prompt) => prompt.sceneId === sceneId ? { ...prompt, [key]: value } : prompt),
+        })),
+      setImagePromptNote: (sceneId, note) =>
+        set((state) => ({ imagePromptNotes: { ...state.imagePromptNotes, [sceneId]: note } })),
+      beginImagePromptRegeneration: (regeneratingPromptSceneId) =>
+        set({ regeneratingPromptSceneId, error: undefined }),
+      replaceImagePrompt: (prompt, meta) =>
+        set((state) => ({
+          imagePrompts: state.imagePrompts.map((current) => current.sceneId === prompt.sceneId
+            ? { ...prompt, id: current.id, sceneId: current.sceneId, aspectRatio: current.aspectRatio }
+            : current),
+          regeneratingPromptSceneId: undefined,
+          meta,
+          error: undefined,
+        })),
+      fail: (error) => set({ status: "error", statusMessage: "", error, regeneratingSceneId: undefined, regeneratingPromptSceneId: undefined }),
       startOver: () =>
         set({
           draft: blankStory,
@@ -274,6 +324,9 @@ export const useProjectStore = create<ProjectState>()(
           scenesApprovedAt: undefined,
           sceneNotes: {},
           regeneratingSceneId: undefined,
+          imagePrompts: [],
+          imagePromptNotes: {},
+          regeneratingPromptSceneId: undefined,
           status: "idle",
           statusMessage: "",
           error: undefined,
@@ -290,13 +343,15 @@ export const useProjectStore = create<ProjectState>()(
         userCorrection: state.userCorrection,
         extraContext: state.extraContext,
         variationSeed: state.variationSeed,
-        status: state.status === "analyzing" || state.status === "questioning" || state.status === "briefing" || state.status === "scenes" ? "idle" : state.status,
+        status: state.status === "analyzing" || state.status === "questioning" || state.status === "briefing" || state.status === "scenes" || state.status === "images" ? "idle" : state.status,
         meta: state.meta,
         brief: state.brief,
         scenes: state.scenes,
         sceneApproval: state.sceneApproval,
         scenesApprovedAt: state.scenesApprovedAt,
         sceneNotes: state.sceneNotes,
+        imagePrompts: state.imagePrompts,
+        imagePromptNotes: state.imagePromptNotes,
       }),
     },
   ),

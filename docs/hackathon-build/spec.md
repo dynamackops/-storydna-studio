@@ -52,7 +52,7 @@ docs/hackathon-build/
 
 ## Initial domain model
 
-The TypeScript model includes all requested future-facing entities while the active slice populates only `Project`, `StoryInput`, `StoryAnalysis`, `ClarifyingQuestion`, and `ClarifyingAnswer`.
+The TypeScript model includes all requested future-facing entities while the active slice now populates the intake, analysis, clarification, creative brief, scene, and image-prompt entities.
 
 Every entity with independent edits has a stable string ID. Project state stores:
 
@@ -79,11 +79,23 @@ Output: a tuple/array constrained to exactly three validated `ClarifyingQuestion
 
 The operations are separate calls. Question generation cannot mutate analysis.
 
+### `POST /api/story/image-prompts`
+
+Input: original intake, StoryDNA analysis, approved creative brief, and approved ordered scenes.
+
+Output: one validated image prompt per scene in identical order, including detailed/short versions, alternate framing, negative instructions, aspect ratio, and consistency anchors.
+
+### `POST /api/story/image-prompt/regenerate`
+
+Input: the authoritative context, one approved scene, its current prompt, and an optional creator note.
+
+Output: exactly one validated replacement prompt. The server preserves prompt ID, scene ID, and aspect ratio.
+
 ## AI operation rules
 
 Each operation has its own system instruction, user payload, Zod schema, and error boundary. Prompts label data blocks by provenance. The model is instructed to avoid production planning during analysis and to ask questions only about unresolved, high-impact forks.
 
-Future operations follow the same pattern:
+Operations follow the same pattern:
 
 1. `analyzeStory`
 2. `generateClarifyingQuestions`
@@ -125,4 +137,3 @@ Editing the original source invalidates downstream analysis and questions after 
 - Integration smoke: both API endpoints and invalid input.
 - Static: TypeScript and production build.
 - Interactive: desktop and mobile workflow, error/status copy, persistence refresh, and basic keyboard traversal.
-

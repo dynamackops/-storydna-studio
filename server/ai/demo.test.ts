@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clarifyingQuestionsSchema, creativeBriefSchema, sceneOutlineSchema, sceneSchema, storyAnalysisSchema } from "../../shared/schemas";
-import { demoAnalysis, demoCreativeBrief, demoQuestions, demoRegeneratedScene, demoSceneOutline } from "./demo";
+import { clarifyingQuestionsSchema, creativeBriefSchema, imagePromptSchema, imagePromptSetSchema, sceneOutlineSchema, sceneSchema, storyAnalysisSchema } from "../../shared/schemas";
+import { demoAnalysis, demoCreativeBrief, demoImagePrompts, demoQuestions, demoRegeneratedImagePrompt, demoRegeneratedScene, demoSceneOutline } from "./demo";
 
 const demoStory = {
   title: "The House That Kept the Dawn",
@@ -51,5 +51,20 @@ describe("guided demo director", () => {
     expect(after.map((scene) => scene.id)).toEqual(beforeIds);
     expect(after[0]).toEqual(outline.scenes[0]);
     expect(regenerated.visualDescription).toContain("key more prominent");
+  });
+
+  it("creates one linked image prompt per scene and regenerates only its target", () => {
+    const analysis = demoAnalysis(demoStory);
+    const scenes = demoSceneOutline(demoStory, analysis).scenes;
+    const brief = demoCreativeBrief(demoStory, analysis, demoQuestions(0).questions.map((question) => ({ questionId: question.id, answer: question.options[0] })), "", "");
+    const set = imagePromptSetSchema.parse(demoImagePrompts(demoStory, brief, scenes));
+    expect(set.prompts.map((prompt) => prompt.sceneId)).toEqual(scenes.map((scene) => scene.id));
+    expect(set.prompts.every((prompt) => prompt.aspectRatio === demoStory.aspectRatio)).toBe(true);
+    const target = set.prompts[1];
+    const regenerated = imagePromptSchema.parse(demoRegeneratedImagePrompt(target, scenes[1], "Make it less literal."));
+    expect(regenerated.id).toBe(target.id);
+    expect(regenerated.sceneId).toBe(target.sceneId);
+    expect(regenerated.detailedPrompt).toContain("less literal");
+    expect(set.prompts[0]).not.toEqual(regenerated);
   });
 });

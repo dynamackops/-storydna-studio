@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clarifyingQuestionsSchema, creativeBriefRequestSchema, sceneOutlineSchema, storyInputSchema } from "./schemas";
+import { clarifyingQuestionsSchema, creativeBriefRequestSchema, imagePromptSetSchema, sceneOutlineSchema, storyInputSchema } from "./schemas";
 
 const question = {
   id: "q-ending",
@@ -44,5 +44,9 @@ describe("StoryDNA schemas", () => {
 
   it("requires a production-usable scene outline", () => {
     expect(sceneOutlineSchema.safeParse({ scenes: [] }).success).toBe(false);
+  });
+
+  it("requires a production-usable image prompt set", () => {
+    expect(imagePromptSetSchema.safeParse({ prompts: [] }).success).toBe(false);
   });
 });

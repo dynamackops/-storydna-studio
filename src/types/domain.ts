@@ -38,10 +38,12 @@ export interface Scene {
 export interface ImagePrompt {
   id: string;
   sceneId: string;
-  detailed: string;
-  short: string;
-  alternateFraming?: string;
-  negativeInstructions?: string;
+  detailedPrompt: string;
+  shortPrompt: string;
+  alternateFraming: string;
+  negativeInstructions: string;
+  aspectRatio: StoryInputValues["aspectRatio"];
+  consistencyAnchors: string[];
 }
 
 export interface MotionPlan {

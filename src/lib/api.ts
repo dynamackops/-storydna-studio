@@ -1,12 +1,15 @@
 import {
   analysisResponseSchema,
   creativeBriefResponseSchema,
+  imagePromptResponseSchema,
+  imagePromptsResponseSchema,
   sceneOutlineResponseSchema,
   sceneResponseSchema,
   questionsResponseSchema,
   type StoryAnalysisValues,
   type StoryInputValues,
   type CreativeBriefValues,
+  type ImagePromptValues,
   type SceneValues,
 } from "../../shared/schemas";
 
@@ -98,6 +101,37 @@ export async function requestRegeneratedScene(
       scene,
       previousScene,
       nextScene,
+      creatorNote,
+    }),
+  );
+}
+
+export async function requestImagePrompts(
+  input: StoryInputValues,
+  analysis: StoryAnalysisValues,
+  brief: CreativeBriefValues,
+  scenes: SceneValues[],
+) {
+  return imagePromptsResponseSchema.parse(
+    await post("/api/story/image-prompts", { input, analysis, brief, scenes }),
+  );
+}
+
+export async function requestRegeneratedImagePrompt(
+  input: StoryInputValues,
+  analysis: StoryAnalysisValues,
+  brief: CreativeBriefValues,
+  scene: SceneValues,
+  prompt: ImagePromptValues,
+  creatorNote: string,
+) {
+  return imagePromptResponseSchema.parse(
+    await post("/api/story/image-prompt/regenerate", {
+      input,
+      analysis,
+      brief,
+      scene,
+      prompt,
       creatorNote,
     }),
   );

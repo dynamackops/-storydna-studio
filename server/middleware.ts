@@ -2,13 +2,15 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite";
 import {
   creativeBriefRequestSchema,
+  imagePromptsRequestSchema,
+  regenerateImagePromptRequestSchema,
   regenerateSceneRequestSchema,
   sceneOutlineRequestSchema,
   questionsRequestSchema,
   storyInputSchema,
 } from "../shared/schemas";
-import { demoAnalysis, demoCreativeBrief, demoQuestions, demoRegeneratedScene, demoSceneOutline } from "./ai/demo";
-import { analyzeStory, createCreativeBrief, generateClarifyingQuestions, generateSceneOutline, regenerateScene } from "./ai/operations";
+import { demoAnalysis, demoCreativeBrief, demoImagePrompts, demoQuestions, demoRegeneratedImagePrompt, demoRegeneratedScene, demoSceneOutline } from "./ai/demo";
+import { analyzeStory, createCreativeBrief, generateClarifyingQuestions, generateImagePrompts, generateSceneOutline, regenerateImagePrompt, regenerateScene } from "./ai/operations";
 
 interface ApiConfig {
   apiKey?: string;
@@ -125,6 +127,31 @@ export function storyApiPlugin(config: ApiConfig): Plugin {
                   parsed.scene,
                   parsed.previousScene,
                   parsed.nextScene,
+                  parsed.creatorNote,
+                  config.apiKey!,
+                  config.model,
+                );
+            return send(res, 200, { data, meta: meta(config, demoMode) });
+          }
+
+          if (req.url === "/api/story/image-prompts") {
+            const parsed = imagePromptsRequestSchema.parse(body);
+            const data = demoMode
+              ? demoImagePrompts(parsed.input, parsed.brief, parsed.scenes)
+              : await generateImagePrompts(parsed.input, parsed.analysis, parsed.brief, parsed.scenes, config.apiKey!, config.model);
+            return send(res, 200, { data, meta: meta(config, demoMode) });
+          }
+
+          if (req.url === "/api/story/image-prompt/regenerate") {
+            const parsed = regenerateImagePromptRequestSchema.parse(body);
+            const data = demoMode
+              ? demoRegeneratedImagePrompt(parsed.prompt, parsed.scene, parsed.creatorNote)
+              : await regenerateImagePrompt(
+                  parsed.input,
+                  parsed.analysis,
+                  parsed.brief,
+                  parsed.scene,
+                  parsed.prompt,
                   parsed.creatorNote,
                   config.apiKey!,
                   config.model,

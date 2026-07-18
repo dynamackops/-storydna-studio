@@ -1,6 +1,7 @@
 import type {
   ClarifyingQuestionValues,
   CreativeBriefValues,
+  ImagePromptValues,
   SceneValues,
   StoryAnalysisValues,
   StoryInputValues,
@@ -167,5 +168,43 @@ export function demoRegeneratedScene(scene: SceneValues, creatorNote: string): S
     visualDescription: `${scene.visualDescription} Reframe the moment with stronger foreground depth and one precise symbolic detail${cleanNote ? `; creator direction: ${cleanNote}` : ""}.`,
     shotType: scene.shotType.includes("alternate") ? scene.shotType : `${scene.shotType} · alternate framing`,
     transitionIdea: `Refined transition: ${scene.transitionIdea}`,
+  };
+}
+
+export function demoImagePrompts(
+  input: StoryInputValues,
+  brief: CreativeBriefValues,
+  scenes: SceneValues[],
+): { prompts: ImagePromptValues[] } {
+  const character = input.characterDescription || "the implied protagonist, shown consistently through silhouette and point of view";
+  return {
+    prompts: scenes.map((scene) => ({
+      id: `prompt-${scene.id}`,
+      sceneId: scene.id,
+      detailedPrompt: `${scene.visualDescription} Subject: ${character}. Environment and action should express “${scene.storyBeat}” without literal over-explanation. Composition: ${scene.shotType}, intentional negative space, layered foreground depth, cinematic visual hierarchy. Expression and body language: ${scene.emotionalIntention.toLowerCase()}, communicated through gaze, posture, and hand tension. Lighting: motivated amber practical light with soft falloff through mineral-blue and near-black violet shadow. Color and atmosphere: tactile, intimate, suspended, quietly celestial. Style: ${input.visualVibe}, subtle 35mm grain, weathered surfaces, natural skin texture, controlled depth of field. Frame for ${input.aspectRatio}. Character continuity: preserve age, facial structure, dark wavy hair, charcoal wardrobe, silhouette, and the evolving warm-light motif across the sequence.`,
+      shortPrompt: `${scene.storyBeat}: ${scene.visualDescription} ${scene.shotType}, ${input.visualVibe}, amber and mineral-blue light, tactile 35mm texture, ${input.aspectRatio}, consistent character and wardrobe.`,
+      alternateFraming: `Alternate: shift to a low, intimate foreground-obstructed ${scene.shotType.toLowerCase()} with the symbolic light source just outside the character's eyeline; preserve the same beat and ${input.aspectRatio} frame.`,
+      negativeInstructions: "No extra people, duplicate limbs, changed face or wardrobe, plastic skin, floating props, illegible anatomy, text, logos, watermarks, oversaturated neon, generic fantasy spectacle, or conflicting light direction.",
+      aspectRatio: input.aspectRatio,
+      consistencyAnchors: [
+        character,
+        ...brief.consistencyRequirements.slice(0, 4),
+        `Use ${input.aspectRatio} framing throughout.`,
+      ].slice(0, 8),
+    })),
+  };
+}
+
+export function demoRegeneratedImagePrompt(
+  prompt: ImagePromptValues,
+  scene: SceneValues,
+  creatorNote: string,
+): ImagePromptValues {
+  const cleanNote = creatorNote.replace(/[.!?]+$/, "");
+  return {
+    ...prompt,
+    detailedPrompt: `${prompt.detailedPrompt} Revised visual direction: use a bolder foreground silhouette, more asymmetrical negative space, and a single precise symbolic detail${cleanNote ? `; creator direction: ${cleanNote}` : ""}.`,
+    shortPrompt: `${scene.storyBeat}, asymmetrical cinematic composition, bold foreground silhouette, restrained symbolic detail, ${prompt.aspectRatio}.`,
+    alternateFraming: `Alternate: compress the scene through a reflective surface, keeping the emotional action legible and the ${prompt.aspectRatio} composition uncluttered.`,
   };
 }

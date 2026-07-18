@@ -6,7 +6,7 @@ An attentive AI creative director for solo AI filmmakers.
 
 This repository currently implements the verified creative-direction slice:
 
-**Story intake → StoryDNA analysis → exactly three adaptive clarification questions → approved creative brief → editable and approved scene outline**
+**Story intake → StoryDNA analysis → exactly three adaptive clarification questions → approved creative brief → editable scene outline → editable per-scene image prompts**
 
 ## Run locally
 
