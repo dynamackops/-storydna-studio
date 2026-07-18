@@ -96,6 +96,19 @@ if (regeneratedPrompt.data.id !== targetPrompt.id || regeneratedPrompt.data.scen
   throw new Error("Isolated image prompt regeneration changed stable identity.");
 }
 
+const motion = await post("/api/story/motion-prompt", {
+  input,
+  analysis: analysis.data,
+  brief: brief.data,
+  scene: targetScene,
+  imagePrompt: targetPrompt,
+  creatorMotionNotes: "Keep the face still until the final breath.",
+  uploadedImageName: "scene-01-still.jpg",
+});
+if (motion.data.sceneId !== targetScene.id || !motion.data.imageToVideoPrompt) {
+  throw new Error("Motion prompt did not preserve the scene mapping or production prompt.");
+}
+
 const invalid = await fetch(`${base}/api/story/analyze`, {
   method: "POST",
   headers: { "content-type": "application/json" },
@@ -111,6 +124,7 @@ console.log(JSON.stringify({
   stableRegeneration: regenerated.data.id,
   imagePrompts: prompts.data.prompts.length,
   stablePromptRegeneration: regeneratedPrompt.data.id,
+  motionPlan: motion.data.id,
   invalidInputStatus: invalid.status,
   mode: analysis.meta.demoMode ? "guided-demo" : "openai",
 }, null, 2));

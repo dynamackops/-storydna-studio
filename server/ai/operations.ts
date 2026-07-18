@@ -5,6 +5,7 @@ import {
   creativeBriefSchema,
   imagePromptSchema,
   imagePromptSetSchema,
+  motionPlanSchema,
   sceneOutlineSchema,
   sceneSchema,
   storyAnalysisSchema,
@@ -12,6 +13,7 @@ import {
   type StoryInputValues,
   type CreativeBriefValues,
   type ImagePromptValues,
+  type MotionPlanValues,
   type SceneValues,
 } from "../../shared/schemas";
 
@@ -210,4 +212,34 @@ export async function regenerateImagePrompt(
   if (!response.output_parsed) throw new Error("The model returned no parsed image prompt.");
   const parsed = imagePromptSchema.parse(response.output_parsed);
   return { ...parsed, id: prompt.id, sceneId: prompt.sceneId, aspectRatio: prompt.aspectRatio };
+}
+
+export async function generateMotionPrompt(
+  input: StoryInputValues,
+  analysis: StoryAnalysisValues,
+  brief: CreativeBriefValues,
+  scene: SceneValues,
+  imagePrompt: ImagePromptValues,
+  creatorMotionNotes: string,
+  uploadedImageName: string,
+  apiKey: string,
+  model: string,
+): Promise<MotionPlanValues> {
+  const response = await client(apiKey).responses.parse({
+    model,
+    input: [
+      {
+        role: "system",
+        content: `${CREATIVE_DIRECTOR}\n\nCreate exactly one image-to-video motion plan for the supplied approved scene and still-image prompt. Preserve sceneId exactly and use id motion-{sceneId}. Prioritize controlled, physically plausible motion and identity continuity. Separate camera, subject, environment, and facial direction. The final image-to-video prompt must be ready to paste into a generation tool. Avoid claims about exact proprietary model features or pricing; suggestedModelCategory must be a capability category, not a guaranteed recommendation.`,
+      },
+      {
+        role: "user",
+        content: `ORIGINAL SOURCE\n${JSON.stringify(input, null, 2)}\n\nSTORYDNA\n${JSON.stringify(analysis, null, 2)}\n\nAPPROVED BRIEF (authoritative)\n${JSON.stringify(brief, null, 2)}\n\nAPPROVED SCENE\n${JSON.stringify(scene, null, 2)}\n\nEDITED STILL-IMAGE PROMPT\n${JSON.stringify(imagePrompt, null, 2)}\n\nUPLOADED IMAGE REFERENCE\n${uploadedImageName || "No filename supplied; use the still prompt as visual reference."}\n\nCREATOR MOTION NOTES (authoritative)\n${creatorMotionNotes || "No extra motion direction supplied."}`,
+      },
+    ],
+    text: { format: zodTextFormat(motionPlanSchema, "motion_plan") },
+  });
+  if (!response.output_parsed) throw new Error("The model returned no parsed motion plan.");
+  const parsed = motionPlanSchema.parse(response.output_parsed);
+  return { ...parsed, id: `motion-${scene.id}`, sceneId: scene.id };
 }

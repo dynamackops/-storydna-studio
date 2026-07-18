@@ -3,6 +3,7 @@ import {
   creativeBriefResponseSchema,
   imagePromptResponseSchema,
   imagePromptsResponseSchema,
+  motionPromptResponseSchema,
   sceneOutlineResponseSchema,
   sceneResponseSchema,
   questionsResponseSchema,
@@ -133,6 +134,28 @@ export async function requestRegeneratedImagePrompt(
       scene,
       prompt,
       creatorNote,
+    }),
+  );
+}
+
+export async function requestMotionPrompt(
+  input: StoryInputValues,
+  analysis: StoryAnalysisValues,
+  brief: CreativeBriefValues,
+  scene: SceneValues,
+  imagePrompt: ImagePromptValues,
+  creatorMotionNotes: string,
+  uploadedImageName: string,
+) {
+  return motionPromptResponseSchema.parse(
+    await post("/api/story/motion-prompt", {
+      input,
+      analysis,
+      brief,
+      scene,
+      imagePrompt,
+      creatorMotionNotes,
+      uploadedImageName,
     }),
   );
 }

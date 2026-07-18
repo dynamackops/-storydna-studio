@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clarifyingQuestionsSchema, creativeBriefSchema, imagePromptSchema, imagePromptSetSchema, sceneOutlineSchema, sceneSchema, storyAnalysisSchema } from "../../shared/schemas";
-import { demoAnalysis, demoCreativeBrief, demoImagePrompts, demoQuestions, demoRegeneratedImagePrompt, demoRegeneratedScene, demoSceneOutline } from "./demo";
+import { clarifyingQuestionsSchema, creativeBriefSchema, imagePromptSchema, imagePromptSetSchema, motionPlanSchema, sceneOutlineSchema, sceneSchema, storyAnalysisSchema } from "../../shared/schemas";
+import { demoAnalysis, demoCreativeBrief, demoImagePrompts, demoMotionPlan, demoQuestions, demoRegeneratedImagePrompt, demoRegeneratedScene, demoSceneOutline } from "./demo";
 
 const demoStory = {
   title: "The House That Kept the Dawn",
@@ -66,5 +66,17 @@ describe("guided demo director", () => {
     expect(regenerated.sceneId).toBe(target.sceneId);
     expect(regenerated.detailedPrompt).toContain("less literal");
     expect(set.prompts[0]).not.toEqual(regenerated);
+  });
+
+  it("creates a stable, production-usable motion plan for one scene", () => {
+    const analysis = demoAnalysis(demoStory);
+    const scenes = demoSceneOutline(demoStory, analysis).scenes;
+    const brief = demoCreativeBrief(demoStory, analysis, demoQuestions(0).questions.map((question) => ({ questionId: question.id, answer: question.options[0] })), "", "");
+    const prompt = demoImagePrompts(demoStory, brief, scenes).prompts[0];
+    const plan = motionPlanSchema.parse(demoMotionPlan(scenes[0], prompt, "Keep the face still until the final breath."));
+    expect(plan.id).toBe(`motion-${scenes[0].id}`);
+    expect(plan.sceneId).toBe(scenes[0].id);
+    expect(plan.imageToVideoPrompt).toContain("final breath");
+    expect(plan.negativeMotionInstructions).toContain("identity drift");
   });
 });

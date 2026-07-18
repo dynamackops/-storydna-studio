@@ -158,6 +158,7 @@ Running log for product decisions, scope cuts, bugs, verification, and submissio
 - Live OpenAI generation remains blocked by HTTP 429 account quota, so the judged path requires API billing/quota before demo recording.
 - The managed Codex shell cannot bind a new localhost port (`EPERM`). Moving the environment file triggered the user-started Vite process to stop; the file was immediately restored, but the user must restart `npm run dev` in Terminal.
 - Local Terminal control is blocked by the desktop safety boundary, so Codex could not restart the user-owned process through the GUI.
+- When the local server was unavailable, image-prompt generation correctly failed but the approved Scenes screen did not render the stored error, making the button appear unresponsive. Added a visible production-step error with restart guidance.
 
 ### Verification results
 
@@ -174,3 +175,42 @@ Running log for product decisions, scope cuts, bugs, verification, and submissio
 - Extended the product's surgical-regeneration promise from scenes into production prompts, protecting unaffected creative work and stable downstream references.
 - Turned approved direction into visibly traceable prompt ingredients—emotion, framing, atmosphere, aspect ratio, and character continuity—rather than relying on a generic one-line generator prompt.
 - Verified the official competition requirement before making a provider decision, retaining GPT-5.6 as the eligible core while preserving a reliable guided demo fallback.
+
+## 2026-07-18 — Motion workspace milestone
+
+### Decisions made
+
+- Added `generateMotionPrompt` as a separate structured, scene-level AI operation instead of folding motion into image prompt generation.
+- Motion plans retain stable `motion-{sceneId}` identities and never rebuild plans for unaffected scenes.
+- Added browser-local still previews with a 10 MB guard. Image pixels are not uploaded or sent to the text-planning API; only the optional filename and creator-authored motion notes are included as context.
+- Made all production direction editable: intended action, camera movement, subject movement, environmental movement, facial expression, clip duration, final prompt, negative motion instructions, transition, and suggested capability category.
+- Avoided exact model pricing or unsupported tool-specific promises. Suggested models are expressed as capability categories.
+- Added a back-to-images control that preserves completed motion plans, allowing creators to revise prompts without losing downstream work.
+- Expanded `.gitignore` to cover `.env*` backups while explicitly keeping `.env.example`, preventing the guided-demo key backup from entering a commit.
+
+### Features cut
+
+- No pixel-level image analysis in this milestone; the upload is a private visual reference for the creator.
+- Uploaded preview data is intentionally session-only and must be re-selected after refresh to avoid localStorage quota failures.
+- Direct video generation remains outside the MVP; the workspace produces tool-ready prompts.
+
+### Bugs encountered
+
+- Existing `.env.openai` was initially visible as an untracked file after the guided-demo rename. The ignore rule now protects all environment variants.
+- A network failure on the approved Scenes screen previously appeared silent; the screen now renders a visible restart/action error.
+
+### Verification results
+
+- TypeScript typecheck: passed.
+- Focused schema/demo tests: 12 passed across 2 files.
+- Production build: passed.
+- Live guided-demo browser flow opened Motion from eight image prompts and generated one complete scene-linked plan.
+- Creator motion notes propagated into the final image-to-video prompt.
+- Refresh persistence passed for the completed plan, its creator note, duration, and editable fields.
+- Mobile 390×844 check: no horizontal overflow; setup and direction grids collapse to one 324px column; working copy remains 13–14px with 11px labels.
+
+### Codex contributions useful for Devpost
+
+- Extended StoryDNA's protected-decision chain through motion, so emotional intent becomes concrete camera, performance, environment, and transition direction.
+- Made the privacy boundary honest and visible: local image reference versus text context sent for planning.
+- Added model-agnostic negative motion guidance focused on common AI-video failure modes such as identity drift, morphing, flicker, and uncontrolled camera movement.

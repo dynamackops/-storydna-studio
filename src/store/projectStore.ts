@@ -4,12 +4,13 @@ import type {
   ClarifyingQuestionValues,
   CreativeBriefValues,
   ImagePromptValues,
+  MotionPlanValues,
   StoryAnalysisValues,
   StoryInputValues,
   SceneValues,
 } from "../../shared/schemas";
 
-export type WorkflowStatus = "idle" | "analyzing" | "questioning" | "briefing" | "scenes" | "images" | "ready" | "error";
+export type WorkflowStatus = "idle" | "analyzing" | "questioning" | "briefing" | "scenes" | "images" | "motion" | "ready" | "error";
 
 export interface PersistedCreativeBrief extends CreativeBriefValues {
   approval: "ready" | "approved";
@@ -40,6 +41,23 @@ export const demoStory: StoryInputValues = {
   preferredTools: "Midjourney, Kling, CapCut",
 };
 
+function motionDraft(scene: SceneValues): MotionPlanValues {
+  return {
+    id: `motion-${scene.id}`,
+    sceneId: scene.id,
+    intendedAction: "",
+    cameraMovement: "",
+    subjectMovement: "",
+    environmentalMovement: "",
+    facialExpressionDirection: "",
+    durationSeconds: Math.max(2, Math.min(10, scene.durationSeconds)),
+    imageToVideoPrompt: "",
+    negativeMotionInstructions: "",
+    transitionIntoNextShot: "",
+    suggestedModelCategory: "",
+  };
+}
+
 interface OperationMeta {
   demoMode: boolean;
   model: string;
@@ -63,6 +81,11 @@ interface ProjectState {
   imagePrompts: ImagePromptValues[];
   imagePromptNotes: Record<string, string>;
   regeneratingPromptSceneId?: string;
+  motionPlans: MotionPlanValues[];
+  motionWorkspaceOpen: boolean;
+  motionNotes: Record<string, string>;
+  motionImageNames: Record<string, string>;
+  regeneratingMotionSceneId?: string;
   status: WorkflowStatus;
   statusMessage: string;
   error?: string;
@@ -98,6 +121,13 @@ interface ProjectState {
   setImagePromptNote: (sceneId: string, note: string) => void;
   beginImagePromptRegeneration: (sceneId: string) => void;
   replaceImagePrompt: (prompt: ImagePromptValues, meta: OperationMeta) => void;
+  openMotionWorkspace: () => void;
+  closeMotionWorkspace: () => void;
+  setMotionNote: (sceneId: string, note: string) => void;
+  setMotionImageName: (sceneId: string, fileName: string) => void;
+  beginMotionGeneration: (sceneId: string) => void;
+  setMotionPlan: (plan: MotionPlanValues, meta: OperationMeta) => void;
+  updateMotionPlan: <K extends keyof MotionPlanValues>(sceneId: string, key: K, value: MotionPlanValues[K]) => void;
   fail: (message: string) => void;
   startOver: () => void;
 }
@@ -117,6 +147,10 @@ export const useProjectStore = create<ProjectState>()(
       sceneNotes: {},
       imagePrompts: [],
       imagePromptNotes: {},
+      motionPlans: [],
+      motionWorkspaceOpen: false,
+      motionNotes: {},
+      motionImageNames: {},
       status: "idle",
       statusMessage: "",
       updateDraft: (key, value) =>
@@ -134,6 +168,10 @@ export const useProjectStore = create<ProjectState>()(
           sceneNotes: {},
           imagePrompts: [],
           imagePromptNotes: {},
+          motionPlans: [],
+          motionWorkspaceOpen: false,
+          motionNotes: {},
+          motionImageNames: {},
         })),
       loadDemoStory: () =>
         set({
@@ -150,6 +188,10 @@ export const useProjectStore = create<ProjectState>()(
           sceneNotes: {},
           imagePrompts: [],
           imagePromptNotes: {},
+          motionPlans: [],
+          motionWorkspaceOpen: false,
+          motionNotes: {},
+          motionImageNames: {},
         }),
       beginAnalysis: () =>
         set({
@@ -217,6 +259,10 @@ export const useProjectStore = create<ProjectState>()(
           sceneNotes: {},
           imagePrompts: [],
           imagePromptNotes: {},
+          motionPlans: [],
+          motionWorkspaceOpen: false,
+          motionNotes: {},
+          motionImageNames: {},
           meta,
           status: "ready",
           statusMessage: "",
@@ -286,6 +332,10 @@ export const useProjectStore = create<ProjectState>()(
         set({
           imagePrompts,
           imagePromptNotes: {},
+          motionPlans: [],
+          motionWorkspaceOpen: false,
+          motionNotes: {},
+          motionImageNames: {},
           meta,
           status: "ready",
           statusMessage: "",
@@ -308,7 +358,36 @@ export const useProjectStore = create<ProjectState>()(
           meta,
           error: undefined,
         })),
-      fail: (error) => set({ status: "error", statusMessage: "", error, regeneratingSceneId: undefined, regeneratingPromptSceneId: undefined }),
+      openMotionWorkspace: () =>
+        set((state) => ({
+          motionPlans: state.motionPlans.length ? state.motionPlans : state.scenes.map(motionDraft),
+          motionWorkspaceOpen: true,
+          status: "ready",
+          error: undefined,
+        })),
+      closeMotionWorkspace: () => set({ motionWorkspaceOpen: false, status: "ready", error: undefined }),
+      setMotionNote: (sceneId, note) =>
+        set((state) => ({ motionNotes: { ...state.motionNotes, [sceneId]: note } })),
+      setMotionImageName: (sceneId, fileName) =>
+        set((state) => ({ motionImageNames: { ...state.motionImageNames, [sceneId]: fileName } })),
+      beginMotionGeneration: (regeneratingMotionSceneId) =>
+        set({ regeneratingMotionSceneId, status: "motion", statusMessage: "Designing controlled motion for this frame…", error: undefined }),
+      setMotionPlan: (plan, meta) =>
+        set((state) => ({
+          motionPlans: state.motionPlans.map((current) => current.sceneId === plan.sceneId
+            ? { ...plan, id: current.id, sceneId: current.sceneId }
+            : current),
+          regeneratingMotionSceneId: undefined,
+          status: "ready",
+          statusMessage: "",
+          meta,
+          error: undefined,
+        })),
+      updateMotionPlan: (sceneId, key, value) =>
+        set((state) => ({
+          motionPlans: state.motionPlans.map((plan) => plan.sceneId === sceneId ? { ...plan, [key]: value } : plan),
+        })),
+      fail: (error) => set({ status: "error", statusMessage: "", error, regeneratingSceneId: undefined, regeneratingPromptSceneId: undefined, regeneratingMotionSceneId: undefined }),
       startOver: () =>
         set({
           draft: blankStory,
@@ -327,6 +406,11 @@ export const useProjectStore = create<ProjectState>()(
           imagePrompts: [],
           imagePromptNotes: {},
           regeneratingPromptSceneId: undefined,
+          motionPlans: [],
+          motionWorkspaceOpen: false,
+          motionNotes: {},
+          motionImageNames: {},
+          regeneratingMotionSceneId: undefined,
           status: "idle",
           statusMessage: "",
           error: undefined,
@@ -343,7 +427,7 @@ export const useProjectStore = create<ProjectState>()(
         userCorrection: state.userCorrection,
         extraContext: state.extraContext,
         variationSeed: state.variationSeed,
-        status: state.status === "analyzing" || state.status === "questioning" || state.status === "briefing" || state.status === "scenes" || state.status === "images" ? "idle" : state.status,
+        status: state.status === "analyzing" || state.status === "questioning" || state.status === "briefing" || state.status === "scenes" || state.status === "images" || state.status === "motion" ? "idle" : state.status,
         meta: state.meta,
         brief: state.brief,
         scenes: state.scenes,
@@ -352,6 +436,10 @@ export const useProjectStore = create<ProjectState>()(
         sceneNotes: state.sceneNotes,
         imagePrompts: state.imagePrompts,
         imagePromptNotes: state.imagePromptNotes,
+        motionPlans: state.motionPlans,
+        motionWorkspaceOpen: state.motionWorkspaceOpen,
+        motionNotes: state.motionNotes,
+        motionImageNames: state.motionImageNames,
       }),
     },
   ),

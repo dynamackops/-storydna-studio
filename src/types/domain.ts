@@ -55,11 +55,10 @@ export interface MotionPlan {
   environmentalMovement: string;
   facialExpressionDirection: string;
   durationSeconds: number;
-  prompt: string;
-  negativeInstructions: string;
-  nextTransition: string;
+  imageToVideoPrompt: string;
+  negativeMotionInstructions: string;
+  transitionIntoNextShot: string;
   suggestedModelCategory: string;
-  creatorNotes: string;
 }
 
 export interface ProductionEstimate {

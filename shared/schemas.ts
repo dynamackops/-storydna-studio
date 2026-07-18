@@ -192,9 +192,40 @@ export const imagePromptResponseSchema = z.object({
   meta: operationMetaSchema,
 });
 
+export const motionPlanSchema = z.object({
+  id: z.string().min(1),
+  sceneId: z.string().min(1),
+  intendedAction: z.string().min(1),
+  cameraMovement: z.string().min(1),
+  subjectMovement: z.string().min(1),
+  environmentalMovement: z.string().min(1),
+  facialExpressionDirection: z.string().min(1),
+  durationSeconds: z.number().int().min(1).max(20),
+  imageToVideoPrompt: z.string().min(1),
+  negativeMotionInstructions: z.string().min(1),
+  transitionIntoNextShot: z.string().min(1),
+  suggestedModelCategory: z.string().min(1),
+});
+
+export const motionPromptRequestSchema = z.object({
+  input: storyInputSchema,
+  analysis: storyAnalysisSchema,
+  brief: creativeBriefSchema,
+  scene: sceneSchema,
+  imagePrompt: imagePromptSchema,
+  creatorMotionNotes: z.string().trim().max(1_500).default(""),
+  uploadedImageName: z.string().trim().max(500).default(""),
+});
+
+export const motionPromptResponseSchema = z.object({
+  data: motionPlanSchema,
+  meta: operationMetaSchema,
+});
+
 export type StoryInputValues = z.infer<typeof storyInputSchema>;
 export type StoryAnalysisValues = z.infer<typeof storyAnalysisSchema>;
 export type ClarifyingQuestionValues = z.infer<typeof clarifyingQuestionSchema>;
 export type CreativeBriefValues = z.infer<typeof creativeBriefSchema>;
 export type SceneValues = z.infer<typeof sceneSchema>;
 export type ImagePromptValues = z.infer<typeof imagePromptSchema>;
+export type MotionPlanValues = z.infer<typeof motionPlanSchema>;

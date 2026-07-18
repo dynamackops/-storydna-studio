@@ -2,6 +2,7 @@ import type {
   ClarifyingQuestionValues,
   CreativeBriefValues,
   ImagePromptValues,
+  MotionPlanValues,
   SceneValues,
   StoryAnalysisValues,
   StoryInputValues,
@@ -206,5 +207,32 @@ export function demoRegeneratedImagePrompt(
     detailedPrompt: `${prompt.detailedPrompt} Revised visual direction: use a bolder foreground silhouette, more asymmetrical negative space, and a single precise symbolic detail${cleanNote ? `; creator direction: ${cleanNote}` : ""}.`,
     shortPrompt: `${scene.storyBeat}, asymmetrical cinematic composition, bold foreground silhouette, restrained symbolic detail, ${prompt.aspectRatio}.`,
     alternateFraming: `Alternate: compress the scene through a reflective surface, keeping the emotional action legible and the ${prompt.aspectRatio} composition uncluttered.`,
+  };
+}
+
+export function demoMotionPlan(
+  scene: SceneValues,
+  imagePrompt: ImagePromptValues,
+  creatorMotionNotes: string,
+): MotionPlanValues {
+  const cleanNote = creatorMotionNotes.replace(/[.!?]+$/, "");
+  const duration = Math.max(2, Math.min(10, scene.durationSeconds));
+  return {
+    id: `motion-${scene.id}`,
+    sceneId: scene.id,
+    intendedAction: `Let the visual action reveal ${scene.storyBeat.toLowerCase()} through one restrained, readable change rather than several competing events.`,
+    cameraMovement: scene.shotType.toLowerCase().includes("wide")
+      ? "A slow, nearly imperceptible push forward with stable horizon and no sudden acceleration."
+      : "A controlled micro-dolly inward with subtle natural handheld breath, never drifting from the subject.",
+    subjectMovement: `The subject begins nearly still, then completes one deliberate gesture that expresses ${scene.emotionalIntention.toLowerCase()}; movement remains anatomically grounded.`,
+    environmentalMovement: "Low-amplitude atmospheric motion only: soft grass or fabric drift, delicate airborne particles, and gradual light movement with consistent wind direction.",
+    facialExpressionDirection: "Preserve facial identity. Let the eyes register the change first, followed by a minimal release in jaw, brow, and breath—no exaggerated smile or sudden expression swap.",
+    durationSeconds: duration,
+    imageToVideoPrompt: `Animate this ${imagePrompt.aspectRatio} cinematic still for ${duration} seconds. ${scene.visualDescription} ${scene.emotionalIntention}. Begin with a short hold, then use one controlled camera move and one purposeful subject action. Maintain the exact face, body proportions, wardrobe, composition, lighting direction, texture, and background geometry of the source image. Add subtle environmental motion and realistic secondary movement only. End in a stable pose that supports: ${scene.transitionIdea}.${cleanNote ? ` Creator motion direction: ${cleanNote}.` : ""}`,
+    negativeMotionInstructions: "No face morphing, identity drift, lip movement without dialogue, rubber limbs, extra fingers, body warping, sudden camera shake, zoom pulses, speed ramps, flicker, lighting changes, background melting, duplicated objects, random new subjects, excessive wind, or motion in every element.",
+    transitionIntoNextShot: `${scene.transitionIdea} Finish the motion cleanly during the final half-second so the edit has a stable outgoing frame.`,
+    suggestedModelCategory: scene.emotionalIntention.toLowerCase().includes("unease")
+      ? "Controlled character performance / subtle atmospheric motion"
+      : "Cinematic image-to-video / restrained camera motion",
   };
 }

@@ -91,6 +91,14 @@ Input: the authoritative context, one approved scene, its current prompt, and an
 
 Output: exactly one validated replacement prompt. The server preserves prompt ID, scene ID, and aspect ratio.
 
+### `POST /api/story/motion-prompt`
+
+Input: authoritative story context, one approved scene, its edited image prompt, optional creator motion notes, and an optional local filename reference.
+
+Output: one scene-linked motion plan containing intended action, camera/subject/environment movement, facial direction, duration, production-ready image-to-video prompt, negative motion instructions, transition, and capability-based model category.
+
+Uploaded image bytes remain in browser memory for preview only in the MVP and are not sent to this text-planning operation.
+
 ## AI operation rules
 
 Each operation has its own system instruction, user payload, Zod schema, and error boundary. Prompts label data blocks by provenance. The model is instructed to avoid production planning during analysis and to ask questions only about unresolved, high-impact forks.

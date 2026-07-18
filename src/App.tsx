@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { storyInputSchema, type StoryInputValues } from "../shared/schemas";
-import { requestAnalysis, requestCreativeBrief, requestImagePrompts, requestQuestions, requestRegeneratedImagePrompt, requestRegeneratedScene, requestSceneOutline } from "./lib/api";
+import { requestAnalysis, requestCreativeBrief, requestImagePrompts, requestMotionPrompt, requestQuestions, requestRegeneratedImagePrompt, requestRegeneratedScene, requestSceneOutline } from "./lib/api";
 import { useProjectStore } from "./store/projectStore";
 
 const stages = ["Story", "DNA", "Scenes", "Images", "Motion", "Review"];
@@ -415,6 +415,8 @@ function ScenesWorkspace({ onRegenerateScene, onGeneratePrompts }: { onRegenerat
         })}
       </div>
 
+      {store.error && <div className="error-banner scene-error" role="alert"><strong>The production step paused.</strong> {store.error} Make sure the local development server is running, then try again.</div>}
+
       {!locked ? <div className="outline-approval"><div><span>Ready?</span><h3>Approve the scene outline</h3><p>Approval locks order and content before image prompts are generated.</p></div><button className="primary-button" onClick={store.approveScenes}>Approve outline <Arrow /></button></div> : <div className="approved-next"><div><span className="approved-check">✓</span><div><strong>Scene outline protected</strong><p>Unchanged scenes will keep their stable IDs through the next stage.</p></div></div><button className="primary-button" onClick={onGeneratePrompts}>Generate image prompts <Arrow /></button></div>}
     </section>
   );
@@ -424,7 +426,7 @@ function PromptField({ label, value, onChange, rows = 4 }: { label: string; valu
   return <label className="prompt-field"><span>{label}</span><textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} /></label>;
 }
 
-function ImagesWorkspace({ onRegeneratePrompt }: { onRegeneratePrompt: (sceneId: string) => Promise<void> }) {
+function ImagesWorkspace({ onRegeneratePrompt, onOpenMotion }: { onRegeneratePrompt: (sceneId: string) => Promise<void>; onOpenMotion: () => void }) {
   const store = useProjectStore();
   const [copied, setCopied] = useState<string>();
 
@@ -470,18 +472,99 @@ function ImagesWorkspace({ onRegeneratePrompt }: { onRegeneratePrompt: (sceneId:
         })}
       </div>
       {store.error && <div className="error-banner" role="alert"><strong>The image director paused.</strong> {store.error}</div>}
-      <div className="outline-approval images-next"><div><span>Images ready</span><h3>Next: bring each frame to life</h3><p>Motion planning and image uploads remain the next milestone.</p></div><button className="primary-button" disabled>Open motion workspace <Arrow /></button></div>
+      <div className="outline-approval images-next"><div><span>Images ready</span><h3>Next: bring each frame to life</h3><p>Upload your selected stills and design controlled motion one scene at a time.</p></div><button className="primary-button" onClick={onOpenMotion}>Open motion workspace <Arrow /></button></div>
     </section>
   );
 }
 
-function DNAWorkspace({ onRegenerate, onBuildBrief, onBuildScenes, onRegenerateScene, onGeneratePrompts, onRegeneratePrompt }: { onRegenerate: () => Promise<void>; onBuildBrief: () => Promise<void>; onBuildScenes: () => Promise<void>; onRegenerateScene: (id: string) => Promise<void>; onGeneratePrompts: () => Promise<void>; onRegeneratePrompt: (sceneId: string) => Promise<void> }) {
+function MotionField({ label, value, onChange, rows = 3 }: { label: string; value: string; onChange: (value: string) => void; rows?: number }) {
+  return <label className="motion-field"><span>{label}</span><textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} placeholder="Generate a motion plan or write your own direction…" /></label>;
+}
+
+function MotionWorkspace({ onGenerateMotion }: { onGenerateMotion: (sceneId: string) => Promise<void> }) {
+  const store = useProjectStore();
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [copied, setCopied] = useState<string>();
+
+  const uploadStill = (sceneId: string, file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return store.fail("Choose a JPG, PNG, WEBP, or other browser-readable image file.");
+    if (file.size > 10 * 1024 * 1024) return store.fail("Keep the local preview under 10 MB for this MVP.");
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setPreviews((current) => ({ ...current, [sceneId]: reader.result as string }));
+    };
+    reader.onerror = () => store.fail("The browser could not read that image.");
+    reader.readAsDataURL(file);
+    store.setMotionImageName(sceneId, file.name);
+  };
+
+  const copyMotion = async (sceneId: string, value: string) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(sceneId);
+      window.setTimeout(() => setCopied((current) => current === sceneId ? undefined : current), 1600);
+    } catch {
+      store.fail("The browser blocked clipboard access. Select the motion prompt and copy it manually.");
+    }
+  };
+
+  const completed = store.motionPlans.filter((plan) => plan.imageToVideoPrompt).length;
+  return (
+    <section className="motion-workspace">
+      <div className="motion-hero">
+        <div><button className="back-stage-button" onClick={store.closeMotionWorkspace}>← Back to image prompts</button><p className="eyebrow"><span>07</span> Motion direction</p><h1>Move only what carries meaning.</h1><p>Upload the chosen still for visual reference, add your own direction, then create a controlled image-to-video plan for each scene.</p></div>
+        <div className="motion-progress"><strong>{completed}/{store.motionPlans.length}</strong><span>Motion plans<br />ready</span></div>
+      </div>
+      <div className="local-asset-note"><span>Private local preview</span><p>Uploaded images stay in this browser session and are not sent to the planning API. Re-select them after a refresh.</p></div>
+      <div className="motion-list">
+        {store.motionPlans.map((plan) => {
+          const scene = store.scenes.find((item) => item.id === plan.sceneId);
+          if (!scene) return null;
+          const hasPlan = Boolean(plan.imageToVideoPrompt);
+          return (
+            <article className={`motion-card ${hasPlan ? "motion-ready" : ""}`} data-scene-id={scene.id} key={plan.id}>
+              <div className="motion-card-heading"><div><span>Scene {String(scene.position).padStart(2, "0")} · {scene.id}</span><h2>{scene.storyBeat}</h2><p>{scene.emotionalIntention}</p></div><span className="motion-status">{hasPlan ? "✓ Plan ready" : "Awaiting direction"}</span></div>
+              <div className="motion-setup">
+                <label className={`still-uploader ${previews[scene.id] ? "has-preview" : ""}`}>
+                  {previews[scene.id] ? <img src={previews[scene.id]} alt={`Uploaded still for scene ${scene.position}`} /> : <div><span>＋</span><strong>Upload scene still</strong><small>JPG, PNG, or WEBP · max 10 MB</small></div>}
+                  <input type="file" accept="image/*" onChange={(event) => uploadStill(scene.id, event.target.files?.[0])} />
+                  {previews[scene.id] && <em>Replace image</em>}
+                </label>
+                <div className="motion-note-block"><span>Story beat</span><p>{scene.visualDescription}</p><label><span>Your motion notes</span><textarea value={store.motionNotes[scene.id] || ""} onChange={(event) => store.setMotionNote(scene.id, event.target.value)} placeholder="What should move, what must stay still, and what should the audience notice?" /></label><button className="primary-button" onClick={() => onGenerateMotion(scene.id)}>{hasPlan ? "Regenerate motion plan" : "Generate motion plan"}<Arrow /></button></div>
+              </div>
+              {hasPlan && <>
+                <div className="motion-direction-grid">
+                  <MotionField label="Intended action" value={plan.intendedAction} onChange={(value) => store.updateMotionPlan(scene.id, "intendedAction", value)} />
+                  <MotionField label="Camera movement" value={plan.cameraMovement} onChange={(value) => store.updateMotionPlan(scene.id, "cameraMovement", value)} />
+                  <MotionField label="Subject movement" value={plan.subjectMovement} onChange={(value) => store.updateMotionPlan(scene.id, "subjectMovement", value)} />
+                  <MotionField label="Environmental movement" value={plan.environmentalMovement} onChange={(value) => store.updateMotionPlan(scene.id, "environmentalMovement", value)} />
+                  <MotionField label="Facial-expression direction" value={plan.facialExpressionDirection} onChange={(value) => store.updateMotionPlan(scene.id, "facialExpressionDirection", value)} />
+                  <MotionField label="Transition into next shot" value={plan.transitionIntoNextShot} onChange={(value) => store.updateMotionPlan(scene.id, "transitionIntoNextShot", value)} />
+                </div>
+                <div className="motion-prompt-block"><div><span>Image-to-video prompt</span><button className={copied === scene.id ? "copied" : ""} onClick={() => copyMotion(scene.id, plan.imageToVideoPrompt)}>{copied === scene.id ? "✓ Copied" : "Copy prompt"}</button></div><textarea rows={8} value={plan.imageToVideoPrompt} onChange={(event) => store.updateMotionPlan(scene.id, "imageToVideoPrompt", event.target.value)} /></div>
+                <div className="motion-footer-grid"><MotionField label="Negative motion instructions" value={plan.negativeMotionInstructions} onChange={(value) => store.updateMotionPlan(scene.id, "negativeMotionInstructions", value)} /><div className="motion-metadata"><label><span>Clip duration</span><div><input type="number" min="1" max="20" value={plan.durationSeconds} onChange={(event) => store.updateMotionPlan(scene.id, "durationSeconds", Math.max(1, Math.min(20, Number(event.target.value))))} /><b>sec</b></div></label><label><span>Suggested model category</span><textarea value={plan.suggestedModelCategory} onChange={(event) => store.updateMotionPlan(scene.id, "suggestedModelCategory", event.target.value)} /></label></div></div>
+              </>}
+            </article>
+          );
+        })}
+      </div>
+      {store.error && <div className="error-banner scene-error" role="alert"><strong>The motion director paused.</strong> {store.error}</div>}
+      <div className="outline-approval motion-next"><div><span>Coming next</span><h3>Estimate the production effort</h3><p>Turn scene duration and shot difficulty into transparent generation ranges.</p></div><button className="primary-button" disabled>Build production estimate <Arrow /></button></div>
+    </section>
+  );
+}
+
+function DNAWorkspace({ onRegenerate, onBuildBrief, onBuildScenes, onRegenerateScene, onGeneratePrompts, onRegeneratePrompt, onGenerateMotion }: { onRegenerate: () => Promise<void>; onBuildBrief: () => Promise<void>; onBuildScenes: () => Promise<void>; onRegenerateScene: (id: string) => Promise<void>; onGeneratePrompts: () => Promise<void>; onRegeneratePrompt: (sceneId: string) => Promise<void>; onGenerateMotion: (sceneId: string) => Promise<void> }) {
   const brief = useProjectStore((state) => state.brief);
   const scenes = useProjectStore((state) => state.scenes);
   const imagePrompts = useProjectStore((state) => state.imagePrompts);
+  const motionPlans = useProjectStore((state) => state.motionPlans);
+  const motionWorkspaceOpen = useProjectStore((state) => state.motionWorkspaceOpen);
   return (
     <main className="dna-shell">
-      {imagePrompts.length ? <ImagesWorkspace onRegeneratePrompt={onRegeneratePrompt} /> : scenes.length ? <ScenesWorkspace onRegenerateScene={onRegenerateScene} onGeneratePrompts={onGeneratePrompts} /> : brief ? <CreativeBriefView onBuildScenes={onBuildScenes} /> : <><AnalysisHeader /><AnalysisView /><QuestionsView onRegenerate={onRegenerate} onBuildBrief={onBuildBrief} /></>}
+      {motionWorkspaceOpen ? <MotionWorkspace onGenerateMotion={onGenerateMotion} /> : imagePrompts.length ? <ImagesWorkspace onRegeneratePrompt={onRegeneratePrompt} onOpenMotion={useProjectStore.getState().openMotionWorkspace} /> : scenes.length ? <ScenesWorkspace onRegenerateScene={onRegenerateScene} onGeneratePrompts={onGeneratePrompts} /> : brief ? <CreativeBriefView onBuildScenes={onBuildScenes} /> : <><AnalysisHeader /><AnalysisView /><QuestionsView onRegenerate={onRegenerate} onBuildBrief={onBuildBrief} /></>}
     </main>
   );
 }
@@ -489,9 +572,9 @@ function DNAWorkspace({ onRegenerate, onBuildBrief, onBuildScenes, onRegenerateS
 export default function App() {
   const store = useProjectStore();
   const hasAnalysis = Boolean(store.analysis);
-  const activeStage = store.imagePrompts.length ? 3 : store.scenes.length ? 2 : hasAnalysis ? 1 : 0;
-  const loading = store.status === "analyzing" || store.status === "questioning" || store.status === "briefing" || store.status === "scenes" || store.status === "images";
-  const loadingPhase = useMemo(() => store.status === "images" ? "Composing the frame language." : store.status === "scenes" ? "Finding the visual rhythm." : store.status === "briefing" ? "Distilling the north star." : store.status === "questioning" ? "Finding the creative forks." : "Reading beneath the words.", [store.status]);
+  const activeStage = store.motionWorkspaceOpen ? 4 : store.imagePrompts.length ? 3 : store.scenes.length ? 2 : hasAnalysis ? 1 : 0;
+  const loading = store.status === "analyzing" || store.status === "questioning" || store.status === "briefing" || store.status === "scenes" || store.status === "images" || store.status === "motion";
+  const loadingPhase = useMemo(() => store.status === "motion" ? "Directing movement without losing the frame." : store.status === "images" ? "Composing the frame language." : store.status === "scenes" ? "Finding the visual rhythm." : store.status === "briefing" ? "Distilling the north star." : store.status === "questioning" ? "Finding the creative forks." : "Reading beneath the words.", [store.status]);
 
   const runQuestions = async (input: StoryInputValues, analysis = store.analysis, seed = store.variationSeed) => {
     if (!analysis) return;
@@ -599,11 +682,25 @@ export default function App() {
     }
   };
 
+  const generateMotionBySceneId = async (sceneId: string) => {
+    if (!store.analysis || !store.brief) return;
+    const scene = store.scenes.find((item) => item.id === sceneId);
+    const imagePrompt = store.imagePrompts.find((item) => item.sceneId === sceneId);
+    if (!scene || !imagePrompt) return;
+    store.beginMotionGeneration(sceneId);
+    try {
+      const result = await requestMotionPrompt(store.draft, store.analysis, store.brief, scene, imagePrompt, store.motionNotes[sceneId] || "", store.motionImageNames[sceneId] || "");
+      store.setMotionPlan(result.data, result.meta);
+    } catch (error) {
+      store.fail(error instanceof Error ? error.message : "Motion prompt generation failed.");
+    }
+  };
+
   return (
     <div className="app-frame">
       <div className="ambient ambient-one" /><div className="ambient ambient-two" />
       <Header activeStage={activeStage} onStartOver={store.startOver} />
-      {loading ? <LoadingDirector message={store.statusMessage} phase={loadingPhase} /> : hasAnalysis ? <DNAWorkspace onRegenerate={regenerate} onBuildBrief={buildBrief} onBuildScenes={buildScenes} onRegenerateScene={regenerateSceneById} onGeneratePrompts={buildImagePrompts} onRegeneratePrompt={regeneratePromptBySceneId} /> : <StoryIntake onAnalyze={analyze} />}
+      {loading ? <LoadingDirector message={store.statusMessage} phase={loadingPhase} /> : hasAnalysis ? <DNAWorkspace onRegenerate={regenerate} onBuildBrief={buildBrief} onBuildScenes={buildScenes} onRegenerateScene={regenerateSceneById} onGeneratePrompts={buildImagePrompts} onRegeneratePrompt={regeneratePromptBySceneId} onGenerateMotion={generateMotionBySceneId} /> : <StoryIntake onAnalyze={analyze} />}
       <footer><Mark /><p>StoryDNA Studio <span>·</span> An attentive creative director for AI filmmakers.</p><small>Built for OpenAI Build Week</small></footer>
     </div>
   );

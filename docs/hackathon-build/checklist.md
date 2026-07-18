@@ -62,9 +62,15 @@
 - [x] Add alternate framing, negative instructions, copy, and isolated regenerate.
 - [x] Verify aspect ratio and consistency details propagate.
 
+## Milestone 8 — Motion workspace
+
+- [x] Add browser-local still uploads and scene-linked previews.
+- [x] Generate an editable motion plan for one scene at a time.
+- [x] Include action, camera, subject, environment, expression, duration, negatives, transition, and model category.
+- [x] Preserve motion plans by stable scene ID without sending uploaded pixels to the planning API.
+
 ## Later milestones
 
-- [ ] Motion workspace and image uploads.
 - [ ] Configurable production estimates with clear disclaimer.
 - [ ] Supabase Auth/Postgres/Storage and verified RLS policies.
 - [ ] Finished-video Director's Commentary modes.

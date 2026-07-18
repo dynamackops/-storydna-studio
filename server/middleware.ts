@@ -3,14 +3,15 @@ import type { Plugin } from "vite";
 import {
   creativeBriefRequestSchema,
   imagePromptsRequestSchema,
+  motionPromptRequestSchema,
   regenerateImagePromptRequestSchema,
   regenerateSceneRequestSchema,
   sceneOutlineRequestSchema,
   questionsRequestSchema,
   storyInputSchema,
 } from "../shared/schemas";
-import { demoAnalysis, demoCreativeBrief, demoImagePrompts, demoQuestions, demoRegeneratedImagePrompt, demoRegeneratedScene, demoSceneOutline } from "./ai/demo";
-import { analyzeStory, createCreativeBrief, generateClarifyingQuestions, generateImagePrompts, generateSceneOutline, regenerateImagePrompt, regenerateScene } from "./ai/operations";
+import { demoAnalysis, demoCreativeBrief, demoImagePrompts, demoMotionPlan, demoQuestions, demoRegeneratedImagePrompt, demoRegeneratedScene, demoSceneOutline } from "./ai/demo";
+import { analyzeStory, createCreativeBrief, generateClarifyingQuestions, generateImagePrompts, generateMotionPrompt, generateSceneOutline, regenerateImagePrompt, regenerateScene } from "./ai/operations";
 
 interface ApiConfig {
   apiKey?: string;
@@ -153,6 +154,24 @@ export function storyApiPlugin(config: ApiConfig): Plugin {
                   parsed.scene,
                   parsed.prompt,
                   parsed.creatorNote,
+                  config.apiKey!,
+                  config.model,
+                );
+            return send(res, 200, { data, meta: meta(config, demoMode) });
+          }
+
+          if (req.url === "/api/story/motion-prompt") {
+            const parsed = motionPromptRequestSchema.parse(body);
+            const data = demoMode
+              ? demoMotionPlan(parsed.scene, parsed.imagePrompt, parsed.creatorMotionNotes)
+              : await generateMotionPrompt(
+                  parsed.input,
+                  parsed.analysis,
+                  parsed.brief,
+                  parsed.scene,
+                  parsed.imagePrompt,
+                  parsed.creatorMotionNotes,
+                  parsed.uploadedImageName,
                   config.apiKey!,
                   config.model,
                 );
