@@ -1,5 +1,6 @@
 import type {
   ClarifyingQuestionValues,
+  CommentaryReportValues,
   CreativeBriefValues,
   ImagePromptValues,
   MotionPlanValues,
@@ -21,6 +22,7 @@ export interface ProductionExportInput {
   imagePrompts: ImagePromptValues[];
   motionPlans: MotionPlanValues[];
   productionEstimate: ProductionEstimateValues;
+  commentaryReport?: CommentaryReportValues;
 }
 
 export interface ProductionExport extends ProductionExportInput {
@@ -102,6 +104,35 @@ ${motion?.imageToVideoPrompt || "Not generated"}
     const scene = project.scenes.find((item) => item.id === shot.sceneId);
     return `| ${scene?.position || "—"} | ${scene?.storyBeat || shot.sceneId} | ${shot.difficulty} | ${shot.expectedGenerations} | ${shot.highRetryGenerations} | ${shot.difficultyReason} |`;
   }).join("\n");
+  const commentary = project.commentaryReport ? `# Director's Commentary
+
+**Feedback mode:** ${project.commentaryReport.mode}
+
+${project.commentaryReport.summary}
+
+## What is working
+
+${bulletList(project.commentaryReport.whatIsWorking)}
+
+## Where meaning is unclear
+
+${bulletList(project.commentaryReport.unclearMeaning)}
+
+## Specific changes
+
+${project.commentaryReport.specificChanges.map((item) => `- **${item.area.replaceAll("-", " ")}:** ${item.change} — ${item.why}`).join("\n")}
+
+## Highest-priority revision
+
+**${project.commentaryReport.highestPriorityRevision.title}**
+
+${project.commentaryReport.highestPriorityRevision.action}
+
+_${project.commentaryReport.highestPriorityRevision.why}_
+
+> ${project.commentaryReport.limitations}
+
+` : "";
 
   return `# ${originalSource.title} — StoryDNA Production Plan
 
@@ -174,6 +205,8 @@ _${productionEstimate.estimatedCredits.configurationLabel}_\n` : "**Credits:** N
 ${shotRows}
 
 > ${productionEstimate.disclaimer}
+
+${commentary}
 
 ---
 

@@ -6,7 +6,9 @@ An attentive AI creative director for solo AI filmmakers.
 
 This repository currently implements the verified creative-direction slice:
 
-**Story intake → StoryDNA analysis → exactly three adaptive clarification questions → approved creative brief → editable scene outline → image prompts → image-to-video motion plans → production estimate → Markdown/JSON director's packet**
+**Story intake → StoryDNA analysis → exactly three adaptive clarification questions → approved creative brief → editable scene outline → image prompts → image-to-video motion plans → production estimate → Director's Commentary → Markdown/JSON director's packet**
+
+Director's Commentary samples up to 12 timestamped frames from a finished clip in the browser and compares them with the creator's approved project context. The complete video stays local; audio is not analyzed in the MVP.
 
 ## Run locally
 

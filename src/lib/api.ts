@@ -1,5 +1,6 @@
 import {
   analysisResponseSchema,
+  commentaryResponseSchema,
   creativeBriefResponseSchema,
   imagePromptResponseSchema,
   imagePromptsResponseSchema,
@@ -9,10 +10,13 @@ import {
   questionsResponseSchema,
   type StoryAnalysisValues,
   type StoryInputValues,
+  type CommentaryModeValues,
   type CreativeBriefValues,
   type ImagePromptValues,
   type SceneValues,
+  type MotionPlanValues,
 } from "../../shared/schemas";
+import type { SampledClip } from "./videoFrames";
 
 export interface ApiErrorShape {
   code: string;
@@ -156,6 +160,30 @@ export async function requestMotionPrompt(
       imagePrompt,
       creatorMotionNotes,
       uploadedImageName,
+    }),
+  );
+}
+
+export async function requestCommentary(
+  input: StoryInputValues,
+  analysis: StoryAnalysisValues,
+  brief: CreativeBriefValues,
+  scenes: SceneValues[],
+  motionPlans: MotionPlanValues[],
+  mode: CommentaryModeValues,
+  creatorNotes: string,
+  clip: SampledClip,
+) {
+  return commentaryResponseSchema.parse(
+    await post("/api/story/commentary", {
+      input,
+      analysis,
+      brief,
+      scenes,
+      motionPlans,
+      mode,
+      creatorNotes,
+      clip,
     }),
   );
 }

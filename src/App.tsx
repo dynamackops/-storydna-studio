@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { storyInputSchema, type StoryInputValues } from "../shared/schemas";
-import { requestAnalysis, requestCreativeBrief, requestImagePrompts, requestMotionPrompt, requestQuestions, requestRegeneratedImagePrompt, requestRegeneratedScene, requestSceneOutline } from "./lib/api";
+import { storyInputSchema, type CommentaryModeValues, type StoryInputValues } from "../shared/schemas";
+import { requestAnalysis, requestCommentary, requestCreativeBrief, requestImagePrompts, requestMotionPrompt, requestQuestions, requestRegeneratedImagePrompt, requestRegeneratedScene, requestSceneOutline } from "./lib/api";
 import { calculateProductionEstimate } from "./lib/estimate";
 import { createProductionExport, exportFileName, productionExportToJson, productionExportToMarkdown } from "./lib/export";
+import { sampleVideoFrames, validateCommentaryVideo, type SampledClip } from "./lib/videoFrames";
 import { useProjectStore } from "./store/projectStore";
 
 const stages = ["Story", "DNA", "Scenes", "Images", "Motion", "Review"];
@@ -579,6 +580,7 @@ function EstimateWorkspace() {
       imagePrompts: store.imagePrompts,
       motionPlans: store.motionPlans,
       productionEstimate: estimate,
+      commentaryReport: store.commentaryReport,
     });
     const contents = format === "md" ? productionExportToMarkdown(project) : productionExportToJson(project);
     const blob = new Blob([contents], { type: format === "md" ? "text/markdown;charset=utf-8" : "application/json;charset=utf-8" });
@@ -624,20 +626,126 @@ function EstimateWorkspace() {
 
       <div className="estimate-disclaimer"><span>Planning estimate</span><p>{estimate.disclaimer}</p></div>
       <div className="outline-approval estimate-next"><div><span>Core production plan complete</span><h3>Take the director’s packet with you.</h3><p>Markdown is ready to read or paste into a production document. JSON preserves the structured project for future integrations. Local images and credentials are excluded.</p></div><div className="export-actions"><button className="secondary-button" onClick={() => downloadPlan("json")}>Download JSON</button><button className="primary-button" onClick={() => downloadPlan("md")}>Export Markdown <Arrow /></button></div></div>
+      <div className="review-entry"><div><span>Finished a cut?</span><h3>Bring it back to the director’s room.</h3><p>Compare a finished clip with the source, approved intention, emotional arc, and scene plan.</p></div><button className="primary-button" onClick={store.openCommentaryWorkspace}>Open Director’s Commentary <Arrow /></button></div>
     </section>
   );
 }
 
-function DNAWorkspace({ onRegenerate, onBuildBrief, onBuildScenes, onRegenerateScene, onGeneratePrompts, onRegeneratePrompt, onGenerateMotion }: { onRegenerate: () => Promise<void>; onBuildBrief: () => Promise<void>; onBuildScenes: () => Promise<void>; onRegenerateScene: (id: string) => Promise<void>; onGeneratePrompts: () => Promise<void>; onRegeneratePrompt: (sceneId: string) => Promise<void>; onGenerateMotion: (sceneId: string) => Promise<void> }) {
+const commentaryModeOptions: Array<{ id: CommentaryModeValues; title: string; description: string }> = [
+  { id: "gentle", title: "Gentle collaborator", description: "Warm, perceptive notes that protect the film's voice." },
+  { id: "direct", title: "Direct film editor", description: "Clear priorities with no cushioning or vague praise." },
+  { id: "audience", title: "Audience reaction", description: "What a first-time viewer can feel and understand." },
+  { id: "technical", title: "AI-video technical", description: "Continuity, motion, artifacts, timing, and repair choices." },
+];
+
+const scorecardLabels: Record<string, string> = {
+  narrativeClarity: "Narrative clarity",
+  emotionalPayoff: "Emotional payoff",
+  pacing: "Pacing",
+  visualConsistency: "Visual consistency",
+  characterContinuity: "Character continuity",
+  symbolism: "Symbolism",
+  shotDuration: "Shot duration",
+  repetition: "Repetition",
+  transitions: "Transitions",
+};
+
+function CommentaryWorkspace({ onAnalyze }: { onAnalyze: (clip: SampledClip) => Promise<void> }) {
+  const store = useProjectStore();
+  const [file, setFile] = useState<File>();
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [fileError, setFileError] = useState("");
+  const [sampling, setSampling] = useState(false);
+  const report = store.commentaryReport;
+
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+
+  const chooseClip = (nextFile?: File) => {
+    if (!nextFile) return;
+    try {
+      validateCommentaryVideo(nextFile);
+      setFile(nextFile);
+      setPreviewUrl(URL.createObjectURL(nextFile));
+      setFileError("");
+    } catch (error) {
+      setFile(undefined);
+      setPreviewUrl("");
+      setFileError(error instanceof Error ? error.message : "That clip could not be opened.");
+    }
+  };
+
+  const analyzeClip = async () => {
+    if (!file) { setFileError("Upload a finished clip before requesting commentary."); return; }
+    setSampling(true);
+    setFileError("");
+    try {
+      const clip = await sampleVideoFrames(file);
+      await onAnalyze(clip);
+    } catch (error) {
+      setFileError(error instanceof Error ? error.message : "The clip could not be sampled.");
+    } finally {
+      setSampling(false);
+    }
+  };
+
+  if (report) {
+    return (
+      <section className="commentary-workspace">
+        <div className="commentary-hero report-hero"><div><button className="back-stage-button" onClick={store.closeCommentaryWorkspace}>← Back to production plan</button><p className="eyebrow"><span>09</span> Director’s Commentary</p><h1>The cut is speaking. Here’s what it says.</h1><p>{report.summary}</p></div><div className="report-mode"><span>Feedback lens</span><strong>{commentaryModeOptions.find((mode) => mode.id === report.mode)?.title}</strong><small>{new Date(report.createdAt).toLocaleString()}</small></div></div>
+
+        <div className="commentary-scorecard">
+          {Object.entries(report.scorecard).map(([key, item]) => <article key={key} className={`score-${item.status}`}><span>{scorecardLabels[key]}</span><strong>{item.status.replace("-", " ")}</strong><p>{item.note}</p></article>)}
+        </div>
+
+        <div className="commentary-report-grid">
+          <article className="commentary-section working"><span>01 · What is working</span><h2>Protect these choices.</h2><ul>{report.whatIsWorking.map((item) => <li key={item}>{item}</li>)}</ul></article>
+          <article className="commentary-section unclear"><span>02 · Where meaning is unclear</span><h2>The audience may lose the thread here.</h2><ul>{report.unclearMeaning.map((item) => <li key={item}>{item}</li>)}</ul></article>
+        </div>
+
+        <article className="revision-list"><div><span>03 · Specific changes</span><h2>Move from note to next render.</h2></div>{report.specificChanges.map((item, index) => <div className="revision-row" key={`${item.area}-${index}`}><b>{String(index + 1).padStart(2, "0")}</b><div><span>{item.area.replaceAll("-", " ")}</span><strong>{item.change}</strong><p>{item.why}</p></div></div>)}</article>
+
+        <article className="priority-revision"><div><span>04 · Highest-priority next revision</span><h2>{report.highestPriorityRevision.title}</h2></div><div><strong>Make this change</strong><p>{report.highestPriorityRevision.action}</p><small>{report.highestPriorityRevision.why}</small></div></article>
+        <div className="commentary-limit"><span>Review boundary</span><p>{report.limitations}</p></div>
+        <div className="commentary-actions"><button className="secondary-button" onClick={store.closeCommentaryWorkspace}>Back to production plan</button><button className="primary-button" onClick={store.clearCommentaryReport}>Review another cut <Arrow /></button></div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="commentary-workspace">
+      <div className="commentary-hero"><div><button className="back-stage-button" onClick={store.closeCommentaryWorkspace}>← Back to production plan</button><p className="eyebrow"><span>09</span> Director’s Commentary</p><h1>Bring the finished cut back into the conversation.</h1><p>StoryDNA compares a timestamped visual sample with your original source, approved brief, emotional arc, and scene plan—then gives you one actionable next pass.</p></div><div className="commentary-orbit"><Mark /><span>Intention</span><span>Cut</span><span>Revision</span></div></div>
+
+      <div className="commentary-setup">
+        <div className="commentary-modes"><div><span>Choose the room</span><h2>How should the director speak?</h2></div>{commentaryModeOptions.map((mode) => <button key={mode.id} className={store.commentaryMode === mode.id ? "selected" : ""} onClick={() => store.setCommentaryMode(mode.id)}><i>{store.commentaryMode === mode.id ? "✓" : ""}</i><span><strong>{mode.title}</strong><small>{mode.description}</small></span></button>)}</div>
+        <div className="commentary-upload-card">
+          <label className={`clip-uploader ${previewUrl ? "has-clip" : ""}`}>
+            {previewUrl ? <video src={previewUrl} controls playsInline /> : <div><span>＋</span><strong>Upload your finished short</strong><small>MP4, MOV, or WEBM · up to 150 MB · under 10 minutes</small></div>}
+            <input type="file" accept="video/mp4,video/quicktime,video/webm,video/*" onChange={(event) => chooseClip(event.target.files?.[0])} />
+            {previewUrl && <em>Replace clip</em>}
+          </label>
+          {file && <div className="clip-meta"><span>{file.name}</span><small>{(file.size / 1_000_000).toFixed(1)} MB · stays local while frames are sampled</small></div>}
+          <label className="commentary-notes"><span>Anything the reviewer should know?</span><textarea value={store.commentaryNotes} onChange={(event) => store.setCommentaryNotes(event.target.value)} placeholder="For example: the sound mix is temporary, or I’m unsure whether the ending reads as release." /></label>
+          {fileError && <div className="error-banner" role="alert"><strong>The review room paused.</strong> {fileError}</div>}
+          {store.error && <div className="error-banner" role="alert"><strong>The review room paused.</strong> {store.error}</div>}
+          <button className="primary-button commentary-submit" disabled={!file || sampling} onClick={analyzeClip}>{sampling ? "Sampling the visual rhythm…" : "Analyze finished clip"}<Arrow /></button>
+          <p className="commentary-privacy"><strong>What gets reviewed:</strong> up to 12 compressed, timestamped frames plus your approved project context. The complete video stays in this browser. Audio, dialogue, and music are not analyzed.</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DNAWorkspace({ onRegenerate, onBuildBrief, onBuildScenes, onRegenerateScene, onGeneratePrompts, onRegeneratePrompt, onGenerateMotion, onAnalyzeCommentary }: { onRegenerate: () => Promise<void>; onBuildBrief: () => Promise<void>; onBuildScenes: () => Promise<void>; onRegenerateScene: (id: string) => Promise<void>; onGeneratePrompts: () => Promise<void>; onRegeneratePrompt: (sceneId: string) => Promise<void>; onGenerateMotion: (sceneId: string) => Promise<void>; onAnalyzeCommentary: (clip: SampledClip) => Promise<void> }) {
   const brief = useProjectStore((state) => state.brief);
   const scenes = useProjectStore((state) => state.scenes);
   const imagePrompts = useProjectStore((state) => state.imagePrompts);
   const motionPlans = useProjectStore((state) => state.motionPlans);
   const motionWorkspaceOpen = useProjectStore((state) => state.motionWorkspaceOpen);
   const estimateWorkspaceOpen = useProjectStore((state) => state.estimateWorkspaceOpen);
+  const commentaryWorkspaceOpen = useProjectStore((state) => state.commentaryWorkspaceOpen);
   return (
     <main className="dna-shell">
-      {estimateWorkspaceOpen ? <EstimateWorkspace /> : motionWorkspaceOpen ? <MotionWorkspace onGenerateMotion={onGenerateMotion} /> : imagePrompts.length ? <ImagesWorkspace onRegeneratePrompt={onRegeneratePrompt} onOpenMotion={useProjectStore.getState().openMotionWorkspace} /> : scenes.length ? <ScenesWorkspace onRegenerateScene={onRegenerateScene} onGeneratePrompts={onGeneratePrompts} /> : brief ? <CreativeBriefView onBuildScenes={onBuildScenes} /> : <><AnalysisHeader /><AnalysisView /><QuestionsView onRegenerate={onRegenerate} onBuildBrief={onBuildBrief} /></>}
+      {commentaryWorkspaceOpen ? <CommentaryWorkspace onAnalyze={onAnalyzeCommentary} /> : estimateWorkspaceOpen ? <EstimateWorkspace /> : motionWorkspaceOpen ? <MotionWorkspace onGenerateMotion={onGenerateMotion} /> : imagePrompts.length ? <ImagesWorkspace onRegeneratePrompt={onRegeneratePrompt} onOpenMotion={useProjectStore.getState().openMotionWorkspace} /> : scenes.length ? <ScenesWorkspace onRegenerateScene={onRegenerateScene} onGeneratePrompts={onGeneratePrompts} /> : brief ? <CreativeBriefView onBuildScenes={onBuildScenes} /> : <><AnalysisHeader /><AnalysisView /><QuestionsView onRegenerate={onRegenerate} onBuildBrief={onBuildBrief} /></>}
     </main>
   );
 }
@@ -645,9 +753,9 @@ function DNAWorkspace({ onRegenerate, onBuildBrief, onBuildScenes, onRegenerateS
 export default function App() {
   const store = useProjectStore();
   const hasAnalysis = Boolean(store.analysis);
-  const activeStage = store.estimateWorkspaceOpen ? 5 : store.motionWorkspaceOpen ? 4 : store.imagePrompts.length ? 3 : store.scenes.length ? 2 : hasAnalysis ? 1 : 0;
-  const loading = store.status === "analyzing" || store.status === "questioning" || store.status === "briefing" || store.status === "scenes" || store.status === "images" || store.status === "motion";
-  const loadingPhase = useMemo(() => store.status === "motion" ? "Directing movement without losing the frame." : store.status === "images" ? "Composing the frame language." : store.status === "scenes" ? "Finding the visual rhythm." : store.status === "briefing" ? "Distilling the north star." : store.status === "questioning" ? "Finding the creative forks." : "Reading beneath the words.", [store.status]);
+  const activeStage = store.commentaryWorkspaceOpen || store.estimateWorkspaceOpen ? 5 : store.motionWorkspaceOpen ? 4 : store.imagePrompts.length ? 3 : store.scenes.length ? 2 : hasAnalysis ? 1 : 0;
+  const loading = store.status === "analyzing" || store.status === "questioning" || store.status === "briefing" || store.status === "scenes" || store.status === "images" || store.status === "motion" || store.status === "commentary";
+  const loadingPhase = useMemo(() => store.status === "commentary" ? "Comparing the finished cut with the film you meant to make." : store.status === "motion" ? "Directing movement without losing the frame." : store.status === "images" ? "Composing the frame language." : store.status === "scenes" ? "Finding the visual rhythm." : store.status === "briefing" ? "Distilling the north star." : store.status === "questioning" ? "Finding the creative forks." : "Reading beneath the words.", [store.status]);
 
   const runQuestions = async (input: StoryInputValues, analysis = store.analysis, seed = store.variationSeed) => {
     if (!analysis) return;
@@ -769,11 +877,31 @@ export default function App() {
     }
   };
 
+  const analyzeCommentary = async (clip: SampledClip) => {
+    if (!store.analysis || !store.brief) return;
+    store.beginCommentary();
+    try {
+      const result = await requestCommentary(
+        store.draft,
+        store.analysis,
+        store.brief,
+        store.scenes,
+        store.motionPlans.filter((plan) => plan.imageToVideoPrompt.trim()),
+        store.commentaryMode,
+        store.commentaryNotes,
+        clip,
+      );
+      store.setCommentaryReport(result.data, result.meta);
+    } catch (error) {
+      store.fail(error instanceof Error ? error.message : "Director's Commentary failed.");
+    }
+  };
+
   return (
     <div className="app-frame">
       <div className="ambient ambient-one" /><div className="ambient ambient-two" />
       <Header activeStage={activeStage} onStartOver={store.startOver} />
-      {loading ? <LoadingDirector message={store.statusMessage} phase={loadingPhase} /> : hasAnalysis ? <DNAWorkspace onRegenerate={regenerate} onBuildBrief={buildBrief} onBuildScenes={buildScenes} onRegenerateScene={regenerateSceneById} onGeneratePrompts={buildImagePrompts} onRegeneratePrompt={regeneratePromptBySceneId} onGenerateMotion={generateMotionBySceneId} /> : <StoryIntake onAnalyze={analyze} />}
+      {loading ? <LoadingDirector message={store.statusMessage} phase={loadingPhase} /> : hasAnalysis ? <DNAWorkspace onRegenerate={regenerate} onBuildBrief={buildBrief} onBuildScenes={buildScenes} onRegenerateScene={regenerateSceneById} onGeneratePrompts={buildImagePrompts} onRegeneratePrompt={regeneratePromptBySceneId} onGenerateMotion={generateMotionBySceneId} onAnalyzeCommentary={analyzeCommentary} /> : <StoryIntake onAnalyze={analyze} />}
       <footer><Mark /><p>StoryDNA Studio <span>·</span> An attentive creative director for AI filmmakers.</p><small>Built for OpenAI Build Week</small></footer>
     </div>
   );

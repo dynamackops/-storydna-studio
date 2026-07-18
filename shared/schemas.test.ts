@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clarifyingQuestionsSchema, creativeBriefRequestSchema, imagePromptSetSchema, motionPlanSchema, sceneOutlineSchema, storyInputSchema } from "./schemas";
+import { clarifyingQuestionsSchema, commentaryRequestSchema, creativeBriefRequestSchema, imagePromptSetSchema, motionPlanSchema, sceneOutlineSchema, storyInputSchema } from "./schemas";
 
 const question = {
   id: "q-ending",
@@ -52,5 +52,13 @@ describe("StoryDNA schemas", () => {
 
   it("requires a complete motion plan", () => {
     expect(motionPlanSchema.safeParse({ id: "motion-scene-01", sceneId: "scene-01" }).success).toBe(false);
+  });
+
+  it("requires at least four valid sampled frames for commentary", () => {
+    const result = commentaryRequestSchema.safeParse({
+      mode: "gentle",
+      clip: { sampledFrames: [{ timeSeconds: 0, imageDataUrl: "data:image/jpeg;base64,abc" }] },
+    });
+    expect(result.success).toBe(false);
   });
 });

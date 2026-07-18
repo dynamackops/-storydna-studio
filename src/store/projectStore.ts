@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
   ClarifyingQuestionValues,
+  CommentaryModeValues,
+  CommentaryReportValues,
   CreativeBriefValues,
   EstimateConfigValues,
   ImagePromptValues,
@@ -11,7 +13,7 @@ import type {
   SceneValues,
 } from "../../shared/schemas";
 
-export type WorkflowStatus = "idle" | "analyzing" | "questioning" | "briefing" | "scenes" | "images" | "motion" | "ready" | "error";
+export type WorkflowStatus = "idle" | "analyzing" | "questioning" | "briefing" | "scenes" | "images" | "motion" | "commentary" | "ready" | "error";
 
 export interface PersistedCreativeBrief extends CreativeBriefValues {
   approval: "ready" | "approved";
@@ -95,6 +97,10 @@ interface ProjectState {
   regeneratingMotionSceneId?: string;
   estimateWorkspaceOpen: boolean;
   estimateConfig: EstimateConfigValues;
+  commentaryWorkspaceOpen: boolean;
+  commentaryMode: CommentaryModeValues;
+  commentaryNotes: string;
+  commentaryReport?: CommentaryReportValues;
   status: WorkflowStatus;
   statusMessage: string;
   error?: string;
@@ -140,6 +146,13 @@ interface ProjectState {
   openEstimateWorkspace: () => void;
   closeEstimateWorkspace: () => void;
   updateEstimateConfig: <K extends keyof EstimateConfigValues>(key: K, value: EstimateConfigValues[K]) => void;
+  openCommentaryWorkspace: () => void;
+  closeCommentaryWorkspace: () => void;
+  setCommentaryMode: (mode: CommentaryModeValues) => void;
+  setCommentaryNotes: (value: string) => void;
+  beginCommentary: () => void;
+  setCommentaryReport: (report: CommentaryReportValues, meta: OperationMeta) => void;
+  clearCommentaryReport: () => void;
   fail: (message: string) => void;
   startOver: () => void;
 }
@@ -165,6 +178,10 @@ export const useProjectStore = create<ProjectState>()(
       motionImageNames: {},
       estimateWorkspaceOpen: false,
       estimateConfig: defaultEstimateConfig,
+      commentaryWorkspaceOpen: false,
+      commentaryMode: "gentle",
+      commentaryNotes: "",
+      commentaryReport: undefined,
       status: "idle",
       statusMessage: "",
       updateDraft: (key, value) =>
@@ -187,6 +204,8 @@ export const useProjectStore = create<ProjectState>()(
           motionNotes: {},
           motionImageNames: {},
           estimateWorkspaceOpen: false,
+          commentaryWorkspaceOpen: false,
+          commentaryReport: undefined,
         })),
       loadDemoStory: () =>
         set({
@@ -208,6 +227,8 @@ export const useProjectStore = create<ProjectState>()(
           motionNotes: {},
           motionImageNames: {},
           estimateWorkspaceOpen: false,
+          commentaryWorkspaceOpen: false,
+          commentaryReport: undefined,
         }),
       beginAnalysis: () =>
         set({
@@ -280,6 +301,8 @@ export const useProjectStore = create<ProjectState>()(
           motionNotes: {},
           motionImageNames: {},
           estimateWorkspaceOpen: false,
+          commentaryWorkspaceOpen: false,
+          commentaryReport: undefined,
           meta,
           status: "ready",
           statusMessage: "",
@@ -354,6 +377,8 @@ export const useProjectStore = create<ProjectState>()(
           motionNotes: {},
           motionImageNames: {},
           estimateWorkspaceOpen: false,
+          commentaryWorkspaceOpen: false,
+          commentaryReport: undefined,
           meta,
           status: "ready",
           statusMessage: "",
@@ -401,15 +426,24 @@ export const useProjectStore = create<ProjectState>()(
           statusMessage: "",
           meta,
           error: undefined,
+          commentaryReport: undefined,
         })),
       updateMotionPlan: (sceneId, key, value) =>
         set((state) => ({
           motionPlans: state.motionPlans.map((plan) => plan.sceneId === sceneId ? { ...plan, [key]: value } : plan),
+          commentaryReport: undefined,
         })),
       openEstimateWorkspace: () => set({ estimateWorkspaceOpen: true, motionWorkspaceOpen: false, status: "ready", error: undefined }),
       closeEstimateWorkspace: () => set({ estimateWorkspaceOpen: false, motionWorkspaceOpen: true, status: "ready", error: undefined }),
       updateEstimateConfig: (key, value) =>
         set((state) => ({ estimateConfig: { ...state.estimateConfig, [key]: value } })),
+      openCommentaryWorkspace: () => set({ commentaryWorkspaceOpen: true, estimateWorkspaceOpen: false, motionWorkspaceOpen: false, status: "ready", error: undefined }),
+      closeCommentaryWorkspace: () => set({ commentaryWorkspaceOpen: false, estimateWorkspaceOpen: true, status: "ready", error: undefined }),
+      setCommentaryMode: (commentaryMode) => set({ commentaryMode }),
+      setCommentaryNotes: (commentaryNotes) => set({ commentaryNotes }),
+      beginCommentary: () => set({ status: "commentary", statusMessage: "Watching the visual rhythm against your original intention…", error: undefined }),
+      setCommentaryReport: (commentaryReport, meta) => set({ commentaryReport, meta, status: "ready", statusMessage: "", error: undefined }),
+      clearCommentaryReport: () => set({ commentaryReport: undefined, error: undefined }),
       fail: (error) => set({ status: "error", statusMessage: "", error, regeneratingSceneId: undefined, regeneratingPromptSceneId: undefined, regeneratingMotionSceneId: undefined }),
       startOver: () =>
         set({
@@ -436,6 +470,10 @@ export const useProjectStore = create<ProjectState>()(
           regeneratingMotionSceneId: undefined,
           estimateWorkspaceOpen: false,
           estimateConfig: defaultEstimateConfig,
+          commentaryWorkspaceOpen: false,
+          commentaryMode: "gentle",
+          commentaryNotes: "",
+          commentaryReport: undefined,
           status: "idle",
           statusMessage: "",
           error: undefined,
@@ -452,7 +490,7 @@ export const useProjectStore = create<ProjectState>()(
         userCorrection: state.userCorrection,
         extraContext: state.extraContext,
         variationSeed: state.variationSeed,
-        status: state.status === "analyzing" || state.status === "questioning" || state.status === "briefing" || state.status === "scenes" || state.status === "images" || state.status === "motion" ? "idle" : state.status,
+        status: state.status === "analyzing" || state.status === "questioning" || state.status === "briefing" || state.status === "scenes" || state.status === "images" || state.status === "motion" || state.status === "commentary" ? "idle" : state.status,
         meta: state.meta,
         brief: state.brief,
         scenes: state.scenes,
@@ -467,6 +505,10 @@ export const useProjectStore = create<ProjectState>()(
         motionImageNames: state.motionImageNames,
         estimateWorkspaceOpen: state.estimateWorkspaceOpen,
         estimateConfig: state.estimateConfig,
+        commentaryWorkspaceOpen: state.commentaryWorkspaceOpen,
+        commentaryMode: state.commentaryMode,
+        commentaryNotes: state.commentaryNotes,
+        commentaryReport: state.commentaryReport,
       }),
     },
   ),

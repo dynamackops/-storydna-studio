@@ -280,3 +280,40 @@ Running log for product decisions, scope cuts, bugs, verification, and submissio
 - Converted the full creative-director collaboration into a portable production artifact instead of leaving the result trapped in the interface.
 - Preserved the provenance chain from creator voice through AI interpretation to approved production decisions.
 - Kept the handoff privacy-safe by design: no secrets and no silently embedded local assets.
+
+## 2026-07-18 — Director's Commentary milestone
+
+### Decisions made
+
+- Used the Responses API's supported multi-image vision input instead of claiming that the model directly watches an uploaded video.
+- Decode the finished clip locally and sample up to 12 evenly spaced JPEG frames at a maximum working width of 768 pixels.
+- Keep the complete video in the browser; only timestamped frame samples, clip metadata, creator notes, and approved project context cross the API boundary.
+- Added four distinct review lenses: gentle creative collaborator, direct film editor, audience reaction, and AI-video technical review.
+- Added a nine-area scorecard covering narrative clarity, emotional payoff, pacing, visual consistency, character continuity, symbolism, shot duration, repetition, and transitions.
+- Persist only the structured report, never the video or sampled frames, and include the latest report in future Markdown/JSON exports.
+
+### Features cut
+
+- Audio, dialogue, music, and continuous frame-to-frame motion analysis are explicitly outside the MVP boundary.
+- No server-side video storage, transcoding pipeline, transcript generation, waveform analysis, or cloud asset history.
+- One finished clip is reviewed at a time; side-by-side cut comparison is deferred.
+
+### Bugs encountered
+
+- Commentary state briefly returned to the estimate screen during a responsive browser reload; reopening the workspace confirmed the persisted route and mobile layout. The saved report itself remains persisted independently of local video state.
+
+### Verification results
+
+- TypeScript typecheck: passed.
+- Focused tests: 20 passed across 5 files.
+- Production build: passed.
+- Validated chronological sampling across full-length and one-second clips.
+- Validated complete structured guided-demo reports across all four feedback modes.
+- Live browser verification confirmed the estimate-to-commentary entry point, four selectable feedback modes, disabled empty-submit state, upload boundary copy, and back navigation.
+- Mobile 390×844 check confirmed single-column modes, full-width upload and notes controls, readable 13px working copy, and no clipped action controls.
+
+### Codex contributions useful for Devpost
+
+- Added a genuinely closed creative loop: StoryDNA can now compare the planned emotional intention with visible evidence from the creator's finished cut.
+- Kept the multimodal claim technically honest by documenting sampled-frame vision and its audio/motion limitations directly in the product.
+- Turned broad critique into production-ready revision priorities tied to the creator's approved decisions rather than generic filmmaking advice.

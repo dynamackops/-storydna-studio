@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import {
   clarifyingQuestionsSchema,
+  commentaryReportSchema,
   creativeBriefSchema,
   imagePromptSchema,
   imagePromptSetSchema,
@@ -11,6 +12,8 @@ import {
   storyAnalysisSchema,
   type StoryAnalysisValues,
   type StoryInputValues,
+  type CommentaryModeValues,
+  type CommentaryReportValues,
   type CreativeBriefValues,
   type ImagePromptValues,
   type MotionPlanValues,
@@ -242,4 +245,63 @@ export async function generateMotionPrompt(
   if (!response.output_parsed) throw new Error("The model returned no parsed motion plan.");
   const parsed = motionPlanSchema.parse(response.output_parsed);
   return { ...parsed, id: `motion-${scene.id}`, sceneId: scene.id };
+}
+
+export async function analyzeFinishedVideo(
+  input: StoryInputValues,
+  analysis: StoryAnalysisValues,
+  brief: CreativeBriefValues,
+  scenes: SceneValues[],
+  motionPlans: MotionPlanValues[],
+  mode: CommentaryModeValues,
+  creatorNotes: string,
+  clip: {
+    name: string;
+    durationSeconds: number;
+    width: number;
+    height: number;
+    sampledFrames: Array<{ timeSeconds: number; imageDataUrl: string }>;
+  },
+  apiKey: string,
+  model: string,
+): Promise<CommentaryReportValues> {
+  const modeDirection: Record<CommentaryModeValues, string> = {
+    gentle: "Respond as a warm, perceptive creative collaborator. Be candid without flattening the creator's confidence.",
+    direct: "Respond as a decisive film editor. Be concise, concrete, and willing to name what is not working.",
+    audience: "Respond from likely first-viewer experience. Distinguish what an audience can infer from what only the creator knows.",
+    technical: "Respond as an AI-video technical reviewer. Prioritize continuity drift, motion artifacts, timing, transitions, and repairable generation choices.",
+  };
+  const frameContent = clip.sampledFrames.flatMap((frame, index) => [
+    { type: "input_text" as const, text: `SAMPLED FRAME ${index + 1} OF ${clip.sampledFrames.length} · ${frame.timeSeconds.toFixed(2)}s` },
+    { type: "input_image" as const, image_url: frame.imageDataUrl, detail: "low" as const },
+  ]);
+  const response = await client(apiKey).responses.parse({
+    model,
+    input: [
+      {
+        role: "system",
+        content: `${CREATIVE_DIRECTOR}\n\nYou are reviewing timestamped frames sampled evenly from a finished short clip. ${modeDirection[mode]} Compare only visible evidence against the creator's authoritative brief and scene plan. Address narrative clarity, emotional payoff, pacing, visual consistency, character continuity, symbolism, shot duration, repetition, and transitions. Do not claim to hear audio, dialogue, music, or exact frame-to-frame motion. Make revisions specific enough to execute in an editor or generation tool.`,
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: `ORIGINAL SOURCE MATERIAL\n${JSON.stringify(input, null, 2)}\n\nSTORYDNA INTERPRETATION\n${JSON.stringify(analysis, null, 2)}\n\nAPPROVED CREATIVE BRIEF (authoritative)\n${JSON.stringify(brief, null, 2)}\n\nAPPROVED SCENE PLAN\n${JSON.stringify(scenes, null, 2)}\n\nMOTION PLANS\n${JSON.stringify(motionPlans, null, 2)}\n\nCREATOR REVIEW NOTES\n${creatorNotes || "None provided."}\n\nCLIP METADATA\n${JSON.stringify({ name: clip.name, durationSeconds: clip.durationSeconds, width: clip.width, height: clip.height, sampledFrameCount: clip.sampledFrames.length }, null, 2)}\n\nThe following images are chronological samples, not continuous video.`,
+          },
+          ...frameContent,
+        ],
+      },
+    ],
+    text: { format: zodTextFormat(commentaryReportSchema, "directors_commentary") },
+  });
+  if (!response.output_parsed) throw new Error("The model returned no parsed commentary report.");
+  const parsed = commentaryReportSchema.parse(response.output_parsed);
+  return {
+    ...parsed,
+    id: `commentary-${Date.now().toString(36)}`,
+    mode,
+    limitations: "Visual review is based on evenly sampled frames, project context, and clip metadata. Audio, dialogue, music, and continuous frame-to-frame motion were not analyzed.",
+    createdAt: new Date().toISOString(),
+  };
 }

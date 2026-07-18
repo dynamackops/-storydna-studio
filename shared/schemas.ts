@@ -258,6 +258,72 @@ export const productionEstimateSchema = z.object({
   generatedAt: z.string().min(1),
 });
 
+export const commentaryModes = ["gentle", "direct", "audience", "technical"] as const;
+export const commentaryAreas = ["narrative-clarity", "emotional-payoff", "pacing", "visual-consistency", "character-continuity", "symbolism", "shot-duration", "repetition", "transitions"] as const;
+
+export const commentaryScoreSchema = z.object({
+  status: z.enum(["working", "mixed", "needs-attention"]),
+  note: z.string().min(1),
+});
+
+export const commentaryReportSchema = z.object({
+  id: z.string().min(1),
+  mode: z.enum(commentaryModes),
+  summary: z.string().min(1),
+  whatIsWorking: z.array(z.string().min(1)).min(1).max(6),
+  unclearMeaning: z.array(z.string().min(1)).min(1).max(6),
+  specificChanges: z.array(z.object({
+    area: z.enum(commentaryAreas),
+    change: z.string().min(1),
+    why: z.string().min(1),
+  })).min(1).max(9),
+  highestPriorityRevision: z.object({
+    title: z.string().min(1),
+    action: z.string().min(1),
+    why: z.string().min(1),
+  }),
+  scorecard: z.object({
+    narrativeClarity: commentaryScoreSchema,
+    emotionalPayoff: commentaryScoreSchema,
+    pacing: commentaryScoreSchema,
+    visualConsistency: commentaryScoreSchema,
+    characterContinuity: commentaryScoreSchema,
+    symbolism: commentaryScoreSchema,
+    shotDuration: commentaryScoreSchema,
+    repetition: commentaryScoreSchema,
+    transitions: commentaryScoreSchema,
+  }),
+  limitations: z.string().min(1),
+  createdAt: z.string().min(1),
+});
+
+export const commentaryRequestSchema = z.object({
+  input: storyInputSchema,
+  analysis: storyAnalysisSchema,
+  brief: creativeBriefSchema,
+  scenes: z.array(sceneSchema).min(2).max(30),
+  motionPlans: z.array(motionPlanSchema).max(30),
+  mode: z.enum(commentaryModes),
+  creatorNotes: z.string().trim().max(2_000).default(""),
+  clip: z.object({
+    name: z.string().trim().min(1).max(500),
+    type: z.string().trim().min(1).max(100),
+    sizeBytes: z.number().int().positive().max(150_000_000),
+    durationSeconds: z.number().positive().max(600),
+    width: z.number().int().positive().max(8_192),
+    height: z.number().int().positive().max(8_192),
+    sampledFrames: z.array(z.object({
+      timeSeconds: z.number().min(0).max(600),
+      imageDataUrl: z.string().startsWith("data:image/jpeg;base64,").max(800_000),
+    })).min(4).max(12),
+  }),
+});
+
+export const commentaryResponseSchema = z.object({
+  data: commentaryReportSchema,
+  meta: operationMetaSchema,
+});
+
 export type StoryInputValues = z.infer<typeof storyInputSchema>;
 export type StoryAnalysisValues = z.infer<typeof storyAnalysisSchema>;
 export type ClarifyingQuestionValues = z.infer<typeof clarifyingQuestionSchema>;
@@ -267,3 +333,6 @@ export type ImagePromptValues = z.infer<typeof imagePromptSchema>;
 export type MotionPlanValues = z.infer<typeof motionPlanSchema>;
 export type EstimateConfigValues = z.infer<typeof estimateConfigSchema>;
 export type ProductionEstimateValues = z.infer<typeof productionEstimateSchema>;
+export type CommentaryModeValues = z.infer<typeof commentaryRequestSchema>["mode"];
+export type CommentaryReportValues = z.infer<typeof commentaryReportSchema>;
+export type CommentaryRequestValues = z.infer<typeof commentaryRequestSchema>;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clarifyingQuestionsSchema, creativeBriefSchema, imagePromptSchema, imagePromptSetSchema, motionPlanSchema, sceneOutlineSchema, sceneSchema, storyAnalysisSchema } from "../../shared/schemas";
-import { demoAnalysis, demoCreativeBrief, demoImagePrompts, demoMotionPlan, demoQuestions, demoRegeneratedImagePrompt, demoRegeneratedScene, demoSceneOutline } from "./demo";
+import { clarifyingQuestionsSchema, commentaryReportSchema, creativeBriefSchema, imagePromptSchema, imagePromptSetSchema, motionPlanSchema, sceneOutlineSchema, sceneSchema, storyAnalysisSchema } from "../../shared/schemas";
+import { demoAnalysis, demoCommentaryReport, demoCreativeBrief, demoImagePrompts, demoMotionPlan, demoQuestions, demoRegeneratedImagePrompt, demoRegeneratedScene, demoSceneOutline } from "./demo";
 
 const demoStory = {
   title: "The House That Kept the Dawn",
@@ -78,5 +78,15 @@ describe("guided demo director", () => {
     expect(plan.sceneId).toBe(scenes[0].id);
     expect(plan.imageToVideoPrompt).toContain("final breath");
     expect(plan.negativeMotionInstructions).toContain("identity drift");
+  });
+
+  it("returns a complete Director's Commentary report in every feedback mode", () => {
+    for (const mode of ["gentle", "direct", "audience", "technical"] as const) {
+      const report = commentaryReportSchema.parse(demoCommentaryReport(mode, "finished-cut.mp4", 64));
+      expect(report.mode).toBe(mode);
+      expect(report.specificChanges.length).toBeGreaterThan(2);
+      expect(Object.keys(report.scorecard)).toHaveLength(9);
+      expect(report.limitations).toContain("Audio");
+    }
   });
 });

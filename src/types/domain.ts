@@ -1,5 +1,6 @@
 import type {
   ClarifyingQuestionValues,
+  CommentaryReportValues,
   CreativeBriefValues,
   StoryAnalysisValues,
   StoryInputValues,
@@ -81,15 +82,7 @@ export interface ProductionEstimate {
   generatedAt: string;
 }
 
-export interface CommentaryReport {
-  id: string;
-  mode: "gentle" | "direct" | "audience" | "technical";
-  whatIsWorking: string[];
-  unclearMeaning: string[];
-  specificChanges: string[];
-  highestPriorityRevision: string;
-  createdAt: string;
-}
+export type CommentaryReport = CommentaryReportValues;
 
 export interface Project {
   id: string;

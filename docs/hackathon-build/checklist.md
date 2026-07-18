@@ -85,10 +85,19 @@
 - [x] Exclude API credentials and browser-local image previews.
 - [x] Verify generated content, safe filenames, and responsive export controls.
 
+## Milestone 11 — Director's Commentary
+
+- [x] Add one finished-clip upload with local preview and size/duration guards.
+- [x] Sample a chronological visual sequence in the browser instead of claiming unsupported direct video vision.
+- [x] Compare visible evidence with the source, StoryDNA, approved brief, scene plan, and motion plans.
+- [x] Add gentle collaborator, direct editor, audience reaction, and AI-video technical modes.
+- [x] Return four actionable feedback sections plus a nine-area scorecard.
+- [x] State clearly that audio and continuous frame-to-frame motion are not analyzed.
+- [x] Persist the latest structured report and include it in later exports.
+
 ## Later milestones
 
 - [ ] Deployment and submission hardening.
-- [ ] Finished-video Director's Commentary modes.
 - [ ] Supabase Auth/Postgres/Storage and verified RLS policies.
 
 ## Release gate for each milestone

@@ -1,5 +1,7 @@
 import type {
   ClarifyingQuestionValues,
+  CommentaryModeValues,
+  CommentaryReportValues,
   CreativeBriefValues,
   ImagePromptValues,
   MotionPlanValues,
@@ -234,5 +236,58 @@ export function demoMotionPlan(
     suggestedModelCategory: scene.emotionalIntention.toLowerCase().includes("unease")
       ? "Controlled character performance / subtle atmospheric motion"
       : "Cinematic image-to-video / restrained camera motion",
+  };
+}
+
+export function demoCommentaryReport(
+  mode: CommentaryModeValues,
+  clipName: string,
+  durationSeconds: number,
+): CommentaryReportValues {
+  const voices: Record<CommentaryModeValues, string> = {
+    gentle: "The film already carries a coherent emotional atmosphere; the next pass should protect that sensitivity while making the turn easier to feel.",
+    direct: "The visual language is strong, but the edit needs a clearer causal turn and a more disciplined final hold.",
+    audience: "An audience is likely to feel the mood immediately, then briefly lose the story logic around the central transformation.",
+    technical: "The sequence is visually viable; continuity, motion density, and transition timing are the highest-risk AI-video issues in the next render pass.",
+  };
+  const score = (status: "working" | "mixed" | "needs-attention", note: string) => ({ status, note });
+
+  return {
+    id: `commentary-${Date.now().toString(36)}`,
+    mode,
+    summary: voices[mode],
+    whatIsWorking: [
+      "The restrained amber-versus-mineral palette keeps the emotional world connected across the sequence.",
+      "Threshold and reflected-light motifs echo the approved brief without illustrating every line literally.",
+      "The protagonist's guarded posture gives the opening a readable emotional baseline.",
+    ],
+    unclearMeaning: [
+      "The decisive inner change risks reading as a location reveal rather than a choice made by the protagonist.",
+      "The final image may arrive before the preceding beat has fully transferred its emotional weight.",
+    ],
+    specificChanges: [
+      { area: "narrative-clarity", change: "Add or extend one reaction shot immediately after the threshold opens.", why: "The audience needs to see the reveal become an internal event, not only a spectacle." },
+      { area: "pacing", change: "Trim repeated approach imagery and give that time to the final two beats.", why: "This moves duration toward the emotional payoff instead of the setup." },
+      { area: "transitions", change: "Carry the amber light direction across the transformation cut.", why: "A motivated visual bridge will make the impossible reveal feel earned." },
+      { area: "character-continuity", change: "Lock face, hair silhouette, coat collar, and gaze direction before regenerating the reaction shot.", why: "Those anchors are the most noticeable identity signals during a close emotional beat." },
+    ],
+    highestPriorityRevision: {
+      title: "Make the transformation belong to the character",
+      action: "Hold two beats longer on the protagonist's recognition directly after the central reveal, then let the final image enter on her released breath.",
+      why: "That single timing change clarifies the narrative turn and strengthens the emotional destination without changing the film's voice.",
+    },
+    scorecard: {
+      narrativeClarity: score("mixed", "The beginning and destination read; the causal turn needs one clearer character reaction."),
+      emotionalPayoff: score("mixed", "The intended tenderness is present, but the last beat needs more room to land."),
+      pacing: score("mixed", `${durationSeconds.toFixed(1)} seconds is workable; redistribute time from repeated setup into the transformation.`),
+      visualConsistency: score("working", "Palette, texture, and motivated light form a coherent visual system."),
+      characterContinuity: score("needs-attention", "Protect facial structure and wardrobe anchors at the reveal and final close framing."),
+      symbolism: score("working", "Thresholds and warm light remain legible without becoming overly literal."),
+      shotDuration: score("mixed", "Opening holds feel intentional; the emotional reaction and final image need longer tails."),
+      repetition: score("mixed", "Approach imagery can be compressed unless each repetition changes the character's state."),
+      transitions: score("needs-attention", "Use light direction and breath as bridges instead of relying on unrelated dissolves."),
+    },
+    limitations: `Guided-demo commentary for ${clipName} uses project context and clip metadata, not its sampled pixels. Connect the OpenAI API for visual frame review. Audio and dialogue are not analyzed in this MVP.`,
+    createdAt: new Date().toISOString(),
   };
 }

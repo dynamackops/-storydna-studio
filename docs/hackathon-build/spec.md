@@ -99,6 +99,14 @@ Output: one scene-linked motion plan containing intended action, camera/subject/
 
 Uploaded image bytes remain in browser memory for preview only in the MVP and are not sent to this text-planning operation.
 
+### `POST /api/story/commentary`
+
+Input: original intake, StoryDNA analysis, approved brief, scenes, available motion plans, creator notes, feedback mode, clip metadata, and 4–12 chronological JPEG frame samples.
+
+Output: one validated commentary report with a nine-area scorecard, what is working, unclear meaning, specific changes, and the highest-priority revision.
+
+The browser decodes the selected clip and samples up to 12 timestamped frames at a maximum working width of 768 pixels. The complete video is not uploaded. The Responses API receives the sampled images at low detail with the labeled project context. The UI and prompt both state that audio, dialogue, music, and continuous frame-to-frame motion are outside this MVP review boundary.
+
 ## Production estimate calculation
 
 The estimate is a deterministic client-side calculation rather than an AI claim. Inputs are the approved scenes, available motion plans, configured platform label, expected attempts per scene, and an optional sample credits-per-generation rate.
@@ -107,7 +115,7 @@ Each shot receives a low, medium, or high risk classification with a visible rea
 
 ## Production plan export
 
-The completed local project can be exported entirely in the browser without another API call. A versioned export object preserves the original source, AI interpretation, creator corrections and answers, approved creative brief, stable scene IDs, image prompts, motion plans, and the current production estimate.
+The completed local project can be exported entirely in the browser without another API call. A versioned export object preserves the original source, AI interpretation, creator corrections and answers, approved creative brief, stable scene IDs, image prompts, motion plans, the current production estimate, and the latest commentary report when available.
 
 - Markdown is the readable director's packet for handoff or presentation.
 - JSON preserves structured data for later imports and integrations.

@@ -27,17 +27,19 @@ The first vertical slice implemented and verified is:
 
 > Story input → StoryDNA analysis → exactly three clarification questions
 
-## Explicitly deferred
+## Original day-one deferrals
 
 - Authentication and multi-user access.
 - Supabase database, storage, and Row Level Security policies.
-- Image uploads and motion workspace.
-- Finished-video upload and Director's Commentary.
+- Image uploads and motion workspace. *(Completed after day one.)*
+- Finished-video upload and Director's Commentary. *(Completed after day one as local frame sampling.)*
 - Current vendor pricing claims or live credit calculations.
 - Payments, collaboration, and a large project database.
-- Export formats and deployment automation.
+- Export formats and deployment automation. *(Export completed; deployment remains.)*
 
 These are deferred until the day-one workflow works end to end.
+
+Motion planning, local previews, production estimates, export, and Director's Commentary were subsequently added after the day-one release gate passed. Authentication, cloud storage, payments, and multi-user infrastructure remain deferred.
 
 ## Guardrails
 
@@ -62,4 +64,3 @@ These are deferred until the day-one workflow works end to end.
 - API failures are legible and retryable.
 - With no server API key, an explicit demo mode still provides a coherent deterministic walkthrough.
 - Type checking, unit tests, production build, API smoke checks, and desktop/mobile visual checks pass.
-

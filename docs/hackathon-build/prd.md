@@ -59,9 +59,9 @@ The approved brief produces an ordered, editable outline. Scenes have stable IDs
 
 Approved scenes receive detailed and short prompts, optional alternate framing, negative instructions, copy, and isolated regeneration.
 
-## Later workflow
+## Extended hackathon workflow
 
-Motion planning, configurable production estimates, uploads, Director's Commentary, saved accounts, and export follow the completed day-one journey.
+The working MVP now extends beyond day one with motion planning, configurable production estimates, production-plan export, and visual-frame Director's Commentary. Saved accounts and cloud asset storage remain post-submission infrastructure.
 
 ## Functional requirements
 
@@ -89,4 +89,3 @@ Motion planning, configurable production estimates, uploads, Director's Commenta
 - All three questions represent real creative forks rather than intake repetition.
 - The creator can explain where their original text, the AI's reading, and their own decisions live.
 - The happy path survives refresh and can be demonstrated without production infrastructure.
-

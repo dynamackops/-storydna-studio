@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite";
 import {
   creativeBriefRequestSchema,
+  commentaryRequestSchema,
   imagePromptsRequestSchema,
   motionPromptRequestSchema,
   regenerateImagePromptRequestSchema,
@@ -10,19 +11,19 @@ import {
   questionsRequestSchema,
   storyInputSchema,
 } from "../shared/schemas";
-import { demoAnalysis, demoCreativeBrief, demoImagePrompts, demoMotionPlan, demoQuestions, demoRegeneratedImagePrompt, demoRegeneratedScene, demoSceneOutline } from "./ai/demo";
-import { analyzeStory, createCreativeBrief, generateClarifyingQuestions, generateImagePrompts, generateMotionPrompt, generateSceneOutline, regenerateImagePrompt, regenerateScene } from "./ai/operations";
+import { demoAnalysis, demoCommentaryReport, demoCreativeBrief, demoImagePrompts, demoMotionPlan, demoQuestions, demoRegeneratedImagePrompt, demoRegeneratedScene, demoSceneOutline } from "./ai/demo";
+import { analyzeFinishedVideo, analyzeStory, createCreativeBrief, generateClarifyingQuestions, generateImagePrompts, generateMotionPrompt, generateSceneOutline, regenerateImagePrompt, regenerateScene } from "./ai/operations";
 
 interface ApiConfig {
   apiKey?: string;
   model: string;
 }
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
+async function readJson(req: IncomingMessage, limit = 100_000): Promise<unknown> {
   let body = "";
   for await (const chunk of req) {
     body += chunk;
-    if (body.length > 100_000) throw new Error("Request body is too large.");
+    if (body.length > limit) throw new Error("Request body is too large.");
   }
   return JSON.parse(body || "{}");
 }
@@ -59,7 +60,7 @@ export function storyApiPlugin(config: ApiConfig): Plugin {
         }
 
         try {
-          const body = await readJson(req);
+          const body = await readJson(req, req.url === "/api/story/commentary" ? 12_000_000 : 100_000);
           const demoMode = !config.apiKey;
 
           if (req.url === "/api/story/analyze") {
@@ -172,6 +173,25 @@ export function storyApiPlugin(config: ApiConfig): Plugin {
                   parsed.imagePrompt,
                   parsed.creatorMotionNotes,
                   parsed.uploadedImageName,
+                  config.apiKey!,
+                  config.model,
+                );
+            return send(res, 200, { data, meta: meta(config, demoMode) });
+          }
+
+          if (req.url === "/api/story/commentary") {
+            const parsed = commentaryRequestSchema.parse(body);
+            const data = demoMode
+              ? demoCommentaryReport(parsed.mode, parsed.clip.name, parsed.clip.durationSeconds)
+              : await analyzeFinishedVideo(
+                  parsed.input,
+                  parsed.analysis,
+                  parsed.brief,
+                  parsed.scenes,
+                  parsed.motionPlans,
+                  parsed.mode,
+                  parsed.creatorNotes,
+                  parsed.clip,
                   config.apiKey!,
                   config.model,
                 );
