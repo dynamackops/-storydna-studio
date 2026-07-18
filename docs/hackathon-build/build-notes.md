@@ -249,3 +249,34 @@ Running log for product decisions, scope cuts, bugs, verification, and submissio
 - Turned production uncertainty into a defensible planning range instead of false precision.
 - Made difficult AI-video shots visible before generation, helping solo filmmakers budget retries where continuity and coordinated motion are most fragile.
 - Preserved trust by separating user-configured sample credits from live provider pricing claims.
+
+## 2026-07-18 — Production plan export milestone
+
+### Decisions made
+
+- Added two client-only handoff formats: a readable Markdown director's packet and versioned structured JSON for future imports.
+- Kept every stage traceable in the packet: original source, AI interpretation, creator questions and answers, corrections, approved brief, scenes, image prompts, motion plans, and the current production estimate.
+- Linked downstream artifacts by stable scene ID and preserved scene order.
+- Normalized the project title into a safe filename and made exports without another API request.
+- Explicitly excluded API credentials and browser-local image previews from exported data.
+
+### Features cut
+
+- PDF rendering, ZIP packaging, and embedded image assets are deferred.
+- No cloud export history or share link until storage and authentication are intentionally added.
+
+### Verification results
+
+- TypeScript typecheck: passed.
+- Focused tests: 16 passed across 4 files.
+- Production build: passed.
+- Markdown coverage test confirmed source, creator decisions, every production stage, estimate disclaimer, and privacy note.
+- JSON coverage test confirmed the versioned structure and safe project filename.
+- Live browser verification confirmed both export controls on the completed estimate screen.
+- Mobile 390×844 check confirmed the export actions stack at full width with no clipped content.
+
+### Codex contributions useful for Devpost
+
+- Converted the full creative-director collaboration into a portable production artifact instead of leaving the result trapped in the interface.
+- Preserved the provenance chain from creator voice through AI interpretation to approved production decisions.
+- Kept the handoff privacy-safe by design: no secrets and no silently embedded local assets.

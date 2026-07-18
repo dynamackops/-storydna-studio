@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { storyInputSchema, type StoryInputValues } from "../shared/schemas";
 import { requestAnalysis, requestCreativeBrief, requestImagePrompts, requestMotionPrompt, requestQuestions, requestRegeneratedImagePrompt, requestRegeneratedScene, requestSceneOutline } from "./lib/api";
 import { calculateProductionEstimate } from "./lib/estimate";
+import { createProductionExport, exportFileName, productionExportToJson, productionExportToMarkdown } from "./lib/export";
 import { useProjectStore } from "./store/projectStore";
 
 const stages = ["Story", "DNA", "Scenes", "Images", "Motion", "Review"];
@@ -564,6 +565,32 @@ function EstimateWorkspace() {
     [store.scenes, store.motionPlans, store.estimateConfig],
   );
   const formatCredits = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
+  const downloadPlan = (format: "md" | "json") => {
+    if (!store.analysis || !store.brief) return;
+    const project = createProductionExport({
+      originalSource: store.draft,
+      interpretation: store.analysis,
+      questions: store.questions,
+      answers: store.answers,
+      userCorrection: store.userCorrection,
+      extraContext: store.extraContext,
+      confirmedBrief: store.brief,
+      scenes: store.scenes,
+      imagePrompts: store.imagePrompts,
+      motionPlans: store.motionPlans,
+      productionEstimate: estimate,
+    });
+    const contents = format === "md" ? productionExportToMarkdown(project) : productionExportToJson(project);
+    const blob = new Blob([contents], { type: format === "md" ? "text/markdown;charset=utf-8" : "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = exportFileName(store.draft.title, format);
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+  };
 
   return (
     <section className="estimate-workspace">
@@ -596,7 +623,7 @@ function EstimateWorkspace() {
       </div>
 
       <div className="estimate-disclaimer"><span>Planning estimate</span><p>{estimate.disclaimer}</p></div>
-      <div className="outline-approval estimate-next"><div><span>Core production plan complete</span><h3>Your story is ready for the demo reel.</h3><p>Next: export the plan, deploy the app, and add finished-clip commentary if time allows.</p></div><button className="primary-button" disabled>Export production plan <Arrow /></button></div>
+      <div className="outline-approval estimate-next"><div><span>Core production plan complete</span><h3>Take the director’s packet with you.</h3><p>Markdown is ready to read or paste into a production document. JSON preserves the structured project for future integrations. Local images and credentials are excluded.</p></div><div className="export-actions"><button className="secondary-button" onClick={() => downloadPlan("json")}>Download JSON</button><button className="primary-button" onClick={() => downloadPlan("md")}>Export Markdown <Arrow /></button></div></div>
     </section>
   );
 }

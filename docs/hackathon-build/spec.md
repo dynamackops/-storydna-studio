@@ -105,6 +105,16 @@ The estimate is a deterministic client-side calculation rather than an AI claim.
 
 Each shot receives a low, medium, or high risk classification with a visible reason based on continuity-sensitive anatomy, complex visual elements, coordinated motion, and clip duration. The calculator returns minimum, expected, and high-retry generation totals. Credit totals do not render until the creator explicitly supplies a sample rate, and every view states that no current provider pricing is implied.
 
+## Production plan export
+
+The completed local project can be exported entirely in the browser without another API call. A versioned export object preserves the original source, AI interpretation, creator corrections and answers, approved creative brief, stable scene IDs, image prompts, motion plans, and the current production estimate.
+
+- Markdown is the readable director's packet for handoff or presentation.
+- JSON preserves structured data for later imports and integrations.
+- Filenames are derived from a normalized project title.
+- Browser-local image previews and all API credentials are deliberately excluded.
+- PDF, ZIP packaging, and binary asset embedding are deferred until after the hackathon submission path is stable.
+
 ## AI operation rules
 
 Each operation has its own system instruction, user payload, Zod schema, and error boundary. Prompts label data blocks by provenance. The model is instructed to avoid production planning during analysis and to ask questions only about unresolved, high-impact forks.

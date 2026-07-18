@@ -77,11 +77,19 @@
 - [x] Keep credit estimates hidden until a sample rate is configured.
 - [x] Display an explicit estimate and no-current-pricing disclaimer.
 
+## Milestone 10 — Production plan export
+
+- [x] Export a readable Markdown director's packet.
+- [x] Export versioned structured JSON with stable scene IDs.
+- [x] Include source, interpretation, creator decisions, brief, scenes, prompts, motion, and estimate.
+- [x] Exclude API credentials and browser-local image previews.
+- [x] Verify generated content, safe filenames, and responsive export controls.
+
 ## Later milestones
 
-- [ ] Supabase Auth/Postgres/Storage and verified RLS policies.
+- [ ] Deployment and submission hardening.
 - [ ] Finished-video Director's Commentary modes.
-- [ ] Export and deployment hardening.
+- [ ] Supabase Auth/Postgres/Storage and verified RLS policies.
 
 ## Release gate for each milestone
 

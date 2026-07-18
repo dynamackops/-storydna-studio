@@ -431,6 +431,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .estimate-disclaimer span { color: #c69c8f; font-size: 11px; text-transform: uppercase; letter-spacing: .09em; white-space: nowrap; }
 .estimate-disclaimer p { margin: 0; color: #81797b; font-size: 12px; line-height: 1.6; }
 .estimate-next { margin-top: 31px; }
+.export-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 
 footer { min-height: 86px; width: min(1380px, 91vw); margin: auto; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 9px; color: #756f76; font-size: 11px; position: relative; z-index: 2; }
 footer .mark { transform: scale(.65); margin-right: 0; }
@@ -539,6 +540,8 @@ footer small { margin-left: auto; text-transform: uppercase; letter-spacing: .12
   .shot-estimate-row > p { grid-column: 1 / -1; }
   .shot-generation-range { text-align: left; }
   .estimate-disclaimer { flex-direction: column; gap: 8px; }
+  .export-actions { align-items: stretch; flex-direction: column-reverse; }
+  .export-actions .secondary-button, .export-actions .primary-button { width: 100%; }
   footer p { display: none; }
 }
 
