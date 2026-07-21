@@ -48,4 +48,29 @@ describe("Netlify story function", () => {
     expect(response.status).toBe(200);
     expect(analysisResponseSchema.parse(await response.json()).meta.demoMode).toBe(true);
   });
+
+  it("honors the explicit guided-demo header even when an API key is configured", async () => {
+    process.env.OPENAI_API_KEY = "test-key-that-must-not-be-used";
+    const statusResponse = await storyApi(new Request("https://storydna.example/api/story/status", {
+      headers: { "X-StoryDNA-Demo": "true" },
+    }));
+    expect(await statusResponse.json()).toEqual({ configured: false, model: "gpt-5.6-sol" });
+
+    const analysisResponse = await storyApi(new Request("https://storydna.example/api/story/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-StoryDNA-Demo": "true" },
+      body: JSON.stringify({
+        title: "The Door",
+        sourceType: "poem",
+        sourceText: "A long enough source passage follows a quiet traveler toward a door filled with morning light.",
+        visualVibe: "tactile magical realism",
+        characterDescription: "",
+        aspectRatio: "16:9",
+        targetRuntimeSeconds: 60,
+        preferredTools: "",
+      }),
+    }));
+    expect(analysisResponse.status).toBe(200);
+    expect(analysisResponseSchema.parse(await analysisResponse.json()).meta.demoMode).toBe(true);
+  });
 });

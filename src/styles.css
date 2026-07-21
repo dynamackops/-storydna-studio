@@ -49,6 +49,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .text-button { background: none; border: 0; font-size: 12px; color: var(--gold-soft); cursor: pointer; padding: 6px; }
 
 .stage-nav { height: 52px; max-width: 1500px; margin: auto; padding: 0 4.5vw; display: flex; align-items: center; justify-content: center; gap: 7px; border-bottom: 1px solid var(--line); position: relative; z-index: 4; }
+.demo-route-banner { max-width: 1500px; margin: 0 auto; padding: 10px 4.5vw; border-bottom: 1px solid rgba(215,170,98,.2); background: linear-gradient(90deg, rgba(215,170,98,.09), rgba(143,104,199,.05), transparent); color: #9b938b; font-size: 12px; line-height: 1.5; position: relative; z-index: 4; }
+.demo-route-banner span { color: var(--gold-soft); font-weight: 600; margin-right: 8px; text-transform: uppercase; letter-spacing: .07em; }
 .stage { min-width: 100px; color: #666168; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; padding: 17px 12px 15px; border-bottom: 1px solid transparent; }
 .stage span { font-family: "Instrument Serif", serif; font-size: 13px; letter-spacing: 0; }
 .stage.active { color: var(--gold-soft); border-color: var(--gold); }
@@ -537,6 +539,8 @@ footer small { margin-left: auto; text-transform: uppercase; letter-spacing: .12
   .autosave { display: none; }
   .api-status { font-size: 11px; }
   .stage-nav { height: 48px; padding: 0 10px; overflow-x: auto; justify-content: flex-start; }
+  .demo-route-banner { padding: 9px 18px; font-size: 11px; }
+  .demo-route-banner span { display: block; margin: 0 0 2px; }
   .stage { flex: 0 0 auto; padding: 15px 10px 13px; font-size: 11px; }
   .intake-shell { width: calc(100% - 30px); padding: 48px 0 65px; }
   .intake-intro h1 { font-size: 52px; }

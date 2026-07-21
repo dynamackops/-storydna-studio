@@ -24,10 +24,18 @@ export interface ApiErrorShape {
   retryable: boolean;
 }
 
+export function guidedDemoRequested() {
+  return typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "1";
+}
+
+export function storyApiHeaders(): Record<string, string> {
+  return guidedDemoRequested() ? { "X-StoryDNA-Demo": "true" } : {};
+}
+
 async function post(path: string, body: unknown): Promise<unknown> {
   const response = await fetch(path, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...storyApiHeaders() },
     body: JSON.stringify(body),
   });
 

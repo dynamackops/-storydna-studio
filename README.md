@@ -4,7 +4,7 @@
 
 > Keep your voice. Lose the production chaos.
 
-[Live application](https://storydnastudio.netlify.app) · [Build documentation](#build-documentation)
+[Live application](https://storydnastudio.netlify.app) · [Reliable guided demo](https://storydnastudio.netlify.app/?demo=1) · [Build documentation](#build-documentation)
 
 StoryDNA Studio turns a poem, script, lyric, story, or rough concept into a clarified creative intention and a production-ready visual plan. Unlike tools that generate immediately, it interprets the source first, asks exactly three consequential questions, and lets the creator approve the direction before scenes or prompts are produced.
 
@@ -103,6 +103,14 @@ Never prefix the key with `VITE_`, expose it in frontend code, or commit `.env` 
 
 Without `OPENAI_API_KEY`, the app runs in clearly labeled guided-demo mode. The deterministic demo director uses the same schemas and exercises the complete interface without pretending that a model call occurred.
 
+For a reliable public walkthrough while leaving the real OpenAI configuration intact, open:
+
+```text
+https://storydnastudio.netlify.app/?demo=1
+```
+
+The page sends an explicit demo header to the server, displays a persistent guided-demo notice, and uses validated deterministic responses without making a model request. Remove `?demo=1` to test the live GPT-5.6 path.
+
 ## Verification
 
 ```bash
@@ -115,7 +123,7 @@ npm run smoke:api
 Current verified baseline:
 
 - TypeScript typecheck passes
-- 25 tests pass across 7 test files
+- 26 tests pass across 7 test files
 - Production Vite build passes
 - Shared request and response schemas cover every structured operation
 

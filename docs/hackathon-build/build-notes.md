@@ -421,3 +421,28 @@ Running log for product decisions, scope cuts, bugs, verification, and submissio
 
 - Produced a concrete, evidence-backed account of the human–Codex working loop instead of a generic “built with AI” claim.
 - Connected product decisions and implementation outcomes to the milestone history judges can verify in the repository.
+
+## 2026-07-21 — Public recording route
+
+### Decisions made
+
+- Added an explicit `?demo=1` public route for reliable recording and judging without removing or changing the real OpenAI server configuration.
+- The client sends `X-StoryDNA-Demo: true` only when that query parameter is present; local middleware and the Netlify Function then omit the API key for that request and use the validated deterministic director.
+- Added a persistent visible notice and guided-demo status so the recording path cannot be mistaken for a live model response.
+- Kept the normal URL unchanged for live GPT-5.6 testing.
+
+### Verification targets
+
+- `https://storydnastudio.netlify.app/?demo=1` must display the guided-demo banner and complete the full structured workflow without a model request after deployment.
+- `https://storydnastudio.netlify.app` must remain the live OpenAI path.
+
+### Verification results
+
+- Explicit demo-header production-function coverage passed with an API key configured; the function returned validated demo data without calling the key.
+- Focused tests: 26 passed across 7 files.
+- TypeScript typecheck: passed.
+- Production Vite build: passed with 105 transformed modules.
+
+### Codex contributions useful for Devpost
+
+- Created a transparent, reliable demonstration path that exercises the real schemas, state transitions, editing, approvals, estimates, exports, and commentary UI without hiding the runtime mode.

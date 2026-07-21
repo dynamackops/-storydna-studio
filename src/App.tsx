@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { storyInputSchema, type CommentaryModeValues, type StoryInputValues } from "../shared/schemas";
-import { requestAnalysis, requestCommentary, requestCreativeBrief, requestImagePrompts, requestMotionPrompt, requestQuestions, requestRegeneratedImagePrompt, requestRegeneratedScene, requestSceneOutline } from "./lib/api";
+import { guidedDemoRequested, requestAnalysis, requestCommentary, requestCreativeBrief, requestImagePrompts, requestMotionPrompt, requestQuestions, requestRegeneratedImagePrompt, requestRegeneratedScene, requestSceneOutline, storyApiHeaders } from "./lib/api";
 import { calculateProductionEstimate } from "./lib/estimate";
 import { createProductionExport, exportFileName, productionExportToJson, productionExportToMarkdown } from "./lib/export";
 import { sampleVideoFrames, validateCommentaryVideo, type SampledClip } from "./lib/videoFrames";
@@ -26,7 +26,7 @@ function ApiStatus() {
   const [status, setStatus] = useState<"checking" | "ready" | "demo" | "unknown">("checking");
 
   useEffect(() => {
-    fetch("/api/story/status")
+    fetch("/api/story/status", { headers: storyApiHeaders() })
       .then((response) => response.json())
       .then((result: { configured?: boolean }) => setStatus(result.configured ? "ready" : "demo"))
       .catch(() => setStatus("unknown"));
@@ -42,6 +42,7 @@ function ApiStatus() {
 }
 
 function Header({ activeStage, onStartOver }: { activeStage: number; onStartOver: () => void }) {
+  const forcedDemo = guidedDemoRequested();
   return (
     <>
       <header className="site-header">
@@ -68,6 +69,7 @@ function Header({ activeStage, onStartOver }: { activeStage: number; onStartOver
           );
         })}
       </nav>
+      {forcedDemo && <div className="demo-route-banner"><span>✦ Guided demo route</span> Uses deterministic sample responses for a reliable walkthrough; no model request is made.</div>}
     </>
   );
 }

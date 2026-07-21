@@ -35,7 +35,8 @@ export function storyApiPlugin(config: StoryApiConfig): Plugin {
         try {
           const limit = path === "/api/story/commentary" ? COMMENTARY_BODY_LIMIT : DEFAULT_BODY_LIMIT;
           const body = req.method === "POST" ? await readJson(req, limit) : {};
-          const response = await handleStoryApiRequest(path, req.method || "GET", body, config);
+          const requestConfig = req.headers["x-storydna-demo"] === "true" ? { ...config, apiKey: undefined } : config;
+          const response = await handleStoryApiRequest(path, req.method || "GET", body, requestConfig);
           return send(res, response.status, response.payload);
         } catch (error) {
           const message = error instanceof Error ? error.message : "Unknown server error.";

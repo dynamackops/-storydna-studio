@@ -34,7 +34,7 @@ export default async function storyApi(request: Request) {
     }
 
     const response = await handleStoryApiRequest(path, method, body, {
-      apiKey: process.env.OPENAI_API_KEY?.trim() || undefined,
+      apiKey: request.headers.get("x-storydna-demo") === "true" ? undefined : process.env.OPENAI_API_KEY?.trim() || undefined,
       model: resolveOpenAIModel(process.env.OPENAI_MODEL),
     });
     return json(response.status, response.payload);
