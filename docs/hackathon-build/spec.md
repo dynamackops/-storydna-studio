@@ -30,7 +30,7 @@ For production, the same shared operation router is now used by both Vite develo
 ## Model configuration
 
 - `OPENAI_API_KEY`: server-only secret.
-- `OPENAI_MODEL`: required model selection with `gpt-5.6` documented as the example value confirmed in official model documentation on 2026-07-18.
+- `OPENAI_MODEL`: required model selection with the explicit `gpt-5.6-sol` flagship slug. The public `gpt-5.6` alias is normalized to that slug before requests are sent.
 - The browser never receives either the key or a `VITE_`-prefixed secret.
 - When no key is configured, the local server returns an explicit `demoMode: true` deterministic result so judging is never blocked. This is a product demo fallback, not an emulation claim.
 

@@ -43,7 +43,7 @@ In Netlify, open **Project configuration → Environment variables** and add:
 
 ```text
 OPENAI_API_KEY = your newly rotated project key
-OPENAI_MODEL = gpt-5.6
+OPENAI_MODEL = gpt-5.6-sol
 ```
 
 Never add `VITE_` to the key name. Never upload or commit `.env.openai`.

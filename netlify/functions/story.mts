@@ -1,4 +1,5 @@
 import { handleStoryApiRequest } from "../../server/router";
+import { resolveOpenAIModel } from "../../server/model";
 
 const DEFAULT_BODY_LIMIT = 100_000;
 const COMMENTARY_BODY_LIMIT = 5_500_000;
@@ -34,7 +35,7 @@ export default async function storyApi(request: Request) {
 
     const response = await handleStoryApiRequest(path, method, body, {
       apiKey: process.env.OPENAI_API_KEY?.trim() || undefined,
-      model: process.env.OPENAI_MODEL?.trim() || "gpt-5.6",
+      model: resolveOpenAIModel(process.env.OPENAI_MODEL),
     });
     return json(response.status, response.payload);
   } catch (error) {

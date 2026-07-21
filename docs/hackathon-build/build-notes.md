@@ -348,3 +348,57 @@ Running log for product decisions, scope cuts, bugs, verification, and submissio
 
 - Carried the exact structured AI workflow from local development into a secure production function instead of exposing the API key or shipping a static-only demo.
 - Identified and mitigated a platform payload limit before it could make the showcase commentary feature fail only in production.
+
+## 2026-07-21 — Devpost submission audit
+
+### Decisions made
+
+- Used the repository, deployed interface, test suite, and existing verification log as the factual boundary for submission language.
+- Documented explicit MVP limitations rather than implying direct image/video generation, continuous video understanding, audio analysis, cloud project storage, or current provider pricing.
+- Prepared a complete Devpost draft, three-minute demo script, README recommendations, screenshot/GIF plan, and prioritized judging polish list in `docs/hackathon-build/devpost-submission.md`.
+
+### Bugs encountered
+
+- The deployed application loaded successfully and reported `OpenAI ready`, but a fresh demo-story analysis returned `400 unable to find suitable provider for gpt-5.6`. Production model access/configuration must be repaired or the deployment must intentionally use the clearly labeled guided-demo path before judges test it.
+
+### Verification results
+
+- TypeScript typecheck: passed.
+- Focused tests: 22 passed across 6 files.
+- Production Vite build: passed with 105 transformed modules.
+- Deployed intake UI: loaded successfully and accepted the included demo poem.
+- Deployed OpenAI generation path: failed at the first analysis request with the model/provider error above.
+- Repository audit: public remote configured; working tree was clean before adding the submission draft; no `LICENSE` file or social-preview metadata was present.
+
+### Codex contributions useful for Devpost
+
+- Converted the full implementation and build history into evidence-backed submission language without overstating the MVP.
+- Found a judging-critical production failure during the final live audit rather than relying on the successful page load alone.
+- Created a prioritized submission plan centered on the product's strongest differentiators: listening before generation, protected creator decisions, surgical regeneration, and a closed intention-to-revision loop.
+
+## 2026-07-21 — Submission readiness repair
+
+### Decisions made
+
+- Replaced the ambiguous production model default with the official explicit `gpt-5.6-sol` flagship slug.
+- Added a small configuration resolver that maps a lingering `OPENAI_MODEL=gpt-5.6` Netlify value to `gpt-5.6-sol` while preserving any other explicitly configured model ID.
+- Added an MIT license under Jasmine Mack's name and expanded the README into a submission-ready project page with product differentiation, workflow, architecture, trust model, setup, verification, limitations, deployment, and Codex/GPT-5.6 attribution.
+
+### Bugs encountered
+
+- The improved README initially linked to a nonexistent documentation index; the link now targets the README's own build-documentation section.
+
+### Verification results
+
+- Model configuration regression coverage: alias, whitespace, default, and custom-model preservation passed.
+- Netlify function coverage confirmed that `gpt-5.6` is reported as the resolved `gpt-5.6-sol` model.
+- TypeScript typecheck: passed.
+- Focused tests: 25 passed across 7 files.
+- Production Vite build: passed with 105 transformed modules.
+- Public verification remains pending the required commit, push, and Netlify redeploy.
+
+### Codex contributions useful for Devpost
+
+- Traced the production failure to an alias/provider-resolution boundary and applied the narrowest documented model configuration fix.
+- Added regression coverage so a stale deployment environment value cannot reintroduce the same alias error.
+- Turned the repository landing page into an accurate product narrative while preserving explicit MVP limitations.

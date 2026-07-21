@@ -21,6 +21,14 @@ describe("Netlify story function", () => {
     expect(await response.json()).toEqual({ configured: false, model: "deployment-test-model" });
   });
 
+  it("resolves the GPT-5.6 alias to the explicit flagship model slug", async () => {
+    delete process.env.OPENAI_API_KEY;
+    process.env.OPENAI_MODEL = "gpt-5.6";
+    const response = await storyApi(new Request("https://storydna.example/api/story/status"));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ configured: false, model: "gpt-5.6-sol" });
+  });
+
   it("serves a validated StoryDNA response through the production route", async () => {
     delete process.env.OPENAI_API_KEY;
     const response = await storyApi(new Request("https://storydna.example/api/story/analyze", {

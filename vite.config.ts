@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { storyApiPlugin } from "./server/middleware";
+import { resolveOpenAIModel } from "./server/model";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -10,7 +11,7 @@ export default defineConfig(({ mode }) => {
       react(),
       storyApiPlugin({
         apiKey: env.OPENAI_API_KEY,
-        model: env.OPENAI_MODEL || "gpt-5.6",
+        model: resolveOpenAIModel(env.OPENAI_MODEL),
       }),
     ],
     server: {
