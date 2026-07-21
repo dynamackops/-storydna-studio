@@ -14,7 +14,9 @@ Vite server middleware (server-only OpenAI key)
               OpenAI
 ```
 
-This is one TypeScript repository with a Vite React client and a deliberately thin server boundary. The development middleware is sufficient for the verified hackathon slice; the same handlers can later move into Netlify/Vercel functions without changing client contracts.
+This is one TypeScript repository with a Vite React client and a deliberately thin server boundary. Development uses Vite middleware, while Netlify production uses a serverless function backed by the same shared operation router and client contracts.
+
+For production, the same shared operation router is now used by both Vite development middleware and `netlify/functions/story.mts`. Netlify custom-path routing keeps the browser contract at `/api/story/*`; no frontend API URLs or secrets change between local and production environments.
 
 ## Technology choices
 
@@ -101,11 +103,11 @@ Uploaded image bytes remain in browser memory for preview only in the MVP and ar
 
 ### `POST /api/story/commentary`
 
-Input: original intake, StoryDNA analysis, approved brief, scenes, available motion plans, creator notes, feedback mode, clip metadata, and 4–12 chronological JPEG frame samples.
+Input: original intake, StoryDNA analysis, approved brief, scenes, available motion plans, creator notes, feedback mode, clip metadata, and 4–8 chronological JPEG frame samples.
 
 Output: one validated commentary report with a nine-area scorecard, what is working, unclear meaning, specific changes, and the highest-priority revision.
 
-The browser decodes the selected clip and samples up to 12 timestamped frames at a maximum working width of 768 pixels. The complete video is not uploaded. The Responses API receives the sampled images at low detail with the labeled project context. The UI and prompt both state that audio, dialogue, music, and continuous frame-to-frame motion are outside this MVP review boundary.
+The browser decodes the selected clip and samples up to 8 timestamped frames at a maximum working width of 640 pixels. The complete video is not uploaded. The Responses API receives the sampled images at low detail with the labeled project context. The UI and prompt both state that audio, dialogue, music, and continuous frame-to-frame motion are outside this MVP review boundary. This keeps the JSON request safely below Netlify's buffered function payload limit.
 
 ## Production estimate calculation
 

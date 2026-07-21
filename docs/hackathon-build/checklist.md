@@ -97,7 +97,9 @@
 
 ## Later milestones
 
-- [ ] Deployment and submission hardening.
+- [x] Netlify build, SPA fallback, serverless API routes, environment boundary, and payload hardening.
+- [ ] Connect the real GitHub remote and verify the public production URL.
+- [ ] Submission page, screenshots, and demo recording.
 - [ ] Supabase Auth/Postgres/Storage and verified RLS policies.
 
 ## Release gate for each milestone

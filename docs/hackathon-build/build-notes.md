@@ -286,7 +286,7 @@ Running log for product decisions, scope cuts, bugs, verification, and submissio
 ### Decisions made
 
 - Used the Responses API's supported multi-image vision input instead of claiming that the model directly watches an uploaded video.
-- Decode the finished clip locally and sample up to 12 evenly spaced JPEG frames at a maximum working width of 768 pixels.
+- Decode the finished clip locally and sample up to 8 evenly spaced JPEG frames at a maximum working width of 640 pixels, keeping the request below Netlify's function payload limit.
 - Keep the complete video in the browser; only timestamped frame samples, clip metadata, creator notes, and approved project context cross the API boundary.
 - Added four distinct review lenses: gentle creative collaborator, direct film editor, audience reaction, and AI-video technical review.
 - Added a nine-area scorecard covering narrative clarity, emotional payoff, pacing, visual consistency, character continuity, symbolism, shot duration, repetition, and transitions.
@@ -317,3 +317,33 @@ Running log for product decisions, scope cuts, bugs, verification, and submissio
 - Added a genuinely closed creative loop: StoryDNA can now compare the planned emotional intention with visible evidence from the creator's finished cut.
 - Kept the multimodal claim technically honest by documenting sampled-frame vision and its audio/motion limitations directly in the product.
 - Turned broad critique into production-ready revision priorities tied to the creator's approved decisions rather than generic filmmaking advice.
+
+## 2026-07-21 — Netlify deployment hardening
+
+### Decisions made
+
+- Extracted one shared server operation router so local Vite middleware and the production Netlify Function use identical validation, demo fallback, provenance, and AI operations.
+- Added a TypeScript Netlify Function with custom `/api/story/*` routing, no-store JSON responses, content-type checks, body limits, and server-only environment access.
+- Added committed Netlify build configuration for `npm run build`, `dist`, the functions directory, Node.js 22, SPA refresh fallback, and baseline security headers.
+- Reduced Director's Commentary to eight 640-pixel JPEG samples at controlled quality so its JSON request stays below Netlify's 6 MB buffered payload limit.
+- Kept guided-demo mode functional on production deployments without an API key.
+
+### Bugs encountered
+
+- The first Netlify deploy cloned a repository with no root `package.json`. Local inspection confirmed this project has the file committed but has no Git remote, so Netlify was connected to a different or empty repository.
+- The attempted `git remote add` and push were run from the macOS home directory and used the placeholder GitHub URL literally, producing `not a git repository` before any remote could be configured.
+
+### Verification results
+
+- TypeScript typecheck: passed.
+- Focused tests: 22 passed across 6 files.
+- Production Vite build: passed.
+- Direct production-function tests passed for `/api/story/status` and a complete validated guided-demo `/api/story/analyze` request.
+- Netlify configuration, serverless function, shared router, SPA fallback, environment names, and payload guards are committed-source ready.
+- The managed Codex shell cannot connect to the user-owned localhost port (`EPERM`), so the existing external smoke script could not run from this sandbox; the same route logic passed through direct function invocation.
+- The final external gate is connecting the real GitHub repository, deploying with the documented settings, and running the public guided-demo/API smoke path.
+
+### Codex contributions useful for Devpost
+
+- Carried the exact structured AI workflow from local development into a secure production function instead of exposing the API key or shipping a static-only demo.
+- Identified and mitigated a platform payload limit before it could make the showcase commentary feature fail only in production.

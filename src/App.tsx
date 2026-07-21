@@ -728,7 +728,7 @@ function CommentaryWorkspace({ onAnalyze }: { onAnalyze: (clip: SampledClip) => 
           {fileError && <div className="error-banner" role="alert"><strong>The review room paused.</strong> {fileError}</div>}
           {store.error && <div className="error-banner" role="alert"><strong>The review room paused.</strong> {store.error}</div>}
           <button className="primary-button commentary-submit" disabled={!file || sampling} onClick={analyzeClip}>{sampling ? "Sampling the visual rhythm…" : "Analyze finished clip"}<Arrow /></button>
-          <p className="commentary-privacy"><strong>What gets reviewed:</strong> up to 12 compressed, timestamped frames plus your approved project context. The complete video stays in this browser. Audio, dialogue, and music are not analyzed.</p>
+          <p className="commentary-privacy"><strong>What gets reviewed:</strong> up to 8 compressed, timestamped frames plus your approved project context. The complete video stays in this browser. Audio, dialogue, and music are not analyzed.</p>
         </div>
       </div>
     </section>

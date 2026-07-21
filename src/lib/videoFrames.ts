@@ -1,6 +1,6 @@
 export const MAX_COMMENTARY_VIDEO_BYTES = 150_000_000;
 export const MAX_COMMENTARY_DURATION_SECONDS = 600;
-export const COMMENTARY_FRAME_COUNT = 12;
+export const COMMENTARY_FRAME_COUNT = 8;
 
 export interface SampledVideoFrame {
   timeSeconds: number;
@@ -19,7 +19,7 @@ export interface SampledClip {
 
 export function commentarySampleTimes(durationSeconds: number, count = COMMENTARY_FRAME_COUNT) {
   if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) throw new Error("The clip duration could not be read.");
-  const safeCount = Math.max(4, Math.min(12, Math.round(count)));
+  const safeCount = Math.max(4, Math.min(8, Math.round(count)));
   const edgePadding = Math.min(0.2, durationSeconds * 0.02);
   const usableDuration = Math.max(0, durationSeconds - edgePadding * 2);
   return Array.from({ length: safeCount }, (_, index) => {
@@ -60,7 +60,7 @@ export async function sampleVideoFrames(file: File): Promise<SampledClip> {
     if (!Number.isFinite(video.duration) || video.duration <= 0) throw new Error("The clip duration could not be read.");
     if (video.duration > MAX_COMMENTARY_DURATION_SECONDS) throw new Error("Choose a finished clip under 10 minutes.");
 
-    const maxWidth = 768;
+    const maxWidth = 640;
     const scale = Math.min(1, maxWidth / video.videoWidth);
     const width = Math.max(1, Math.round(video.videoWidth * scale));
     const height = Math.max(1, Math.round(video.videoHeight * scale));
@@ -78,7 +78,7 @@ export async function sampleVideoFrames(file: File): Promise<SampledClip> {
         await seeked;
       }
       context.drawImage(video, 0, 0, width, height);
-      sampledFrames.push({ timeSeconds, imageDataUrl: canvas.toDataURL("image/jpeg", 0.7) });
+      sampledFrames.push({ timeSeconds, imageDataUrl: canvas.toDataURL("image/jpeg", 0.65) });
     }
 
     return {

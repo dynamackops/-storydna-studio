@@ -314,8 +314,8 @@ export const commentaryRequestSchema = z.object({
     height: z.number().int().positive().max(8_192),
     sampledFrames: z.array(z.object({
       timeSeconds: z.number().min(0).max(600),
-      imageDataUrl: z.string().startsWith("data:image/jpeg;base64,").max(800_000),
-    })).min(4).max(12),
+      imageDataUrl: z.string().startsWith("data:image/jpeg;base64,").max(500_000),
+    })).min(4).max(8),
   }),
 });
 
